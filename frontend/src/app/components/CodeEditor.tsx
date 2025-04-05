@@ -3,7 +3,11 @@
 import { Editor } from '@monaco-editor/react';
 import { useState } from 'react';
 
-export default function CodeEditor() {
+interface CodeEditorProps {
+  onSubmit: (code: string) => void;
+}
+
+export default function CodeEditor({ onSubmit }: CodeEditorProps) {
   const [code, setCode] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("python");
 
@@ -15,6 +19,10 @@ export default function CodeEditor() {
     if (value !== undefined) {
       setCode(value);
     }
+  };
+
+  const handleSubmit = () => {
+    onSubmit(code);
   };
 
   return (
@@ -29,11 +37,11 @@ export default function CodeEditor() {
           <option value="java">Java</option>
         </select>
         <div className="space-x-2">
-          <button className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+          <button 
+            onClick={handleSubmit}
+            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+          >
             Submit
-          </button>
-          <button className="px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700">
-            Run
           </button>
         </div>
       </div>
