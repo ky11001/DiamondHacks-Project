@@ -1,3 +1,7 @@
+import tempfile
+import subprocess
+import os
+import json
 import sys
 import traceback
 from io import StringIO
@@ -19,9 +23,12 @@ def capture_stdout():
 
 
 def set_resource_limits():
-    # Set memory limits
     memory_bytes = MEMORY_LIMIT_MB * 1024 * 1024
-    resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+    try:
+        resource.setrlimit(resource.RLIMIT_DATA, (memory_bytes, memory_bytes))
+    except ValueError:
+        # macOS can be picky — fall back or ignore
+        pass
 
 def run_test_code(code: str, test_code: str, return_dict):
     try:
@@ -46,15 +53,16 @@ def run_test_code(code: str, test_code: str, return_dict):
             "sorted": sorted,
         }
 
+        safe_globals = {"__builtins__" : safe_builtins}
         with capture_stdout() as output:
-            exec(code, {"__builtins__" : safe_builtins}, {})
+            exec(combined_code, safe_globals)
 
         return_dict["output"] = output.getvalue()
         return_dict["success"] = True
 
     except Exception as e:
         return_dict["success"] = False
-        return_dict["error"] = traceback.format_exec()
+        return_dict["error"] = traceback.format_exc()
 
 def sandbox_run_with_tests(code: str, test_code: str) -> dict:
     manager = multiprocessing.Manager()
@@ -72,3 +80,4 @@ def sandbox_run_with_tests(code: str, test_code: str) -> dict:
         }
     
     return return_dict.copy()
+
