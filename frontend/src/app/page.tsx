@@ -1,3 +1,5 @@
+import CodeEditor from './components/CodeEditor';
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -26,27 +28,11 @@ export default function Home() {
 
         {/* Code Editor Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <select className="px-3 py-2 border rounded-md text-sm">
-                <option>Python3</option>
-                <option>JavaScript</option>
-                <option>Java</option>
-              </select>
-              <div className="space-x-2">
-                <button className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
-                  Submit
-                </button>
-                <button className="px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700">
-                  Run
-                </button>
-              </div>
-            </div>
-            <div className="font-mono text-sm bg-gray-50 p-4 rounded-md h-96 overflow-y-auto">
-              <pre className="text-gray-800">{`def twoSum(self, nums: List[int], target: int) -> List[int]:
-    # Write your code here`}</pre>
-            </div>
-          </div>
+          <CodeEditor
+            initialCode="def twoSum(self, nums: List[int], target: int) -> List[int]:
+    # Write your code here"
+            language="python3"
+          />
 
           {/* Test Cases & Results */}
           <div className="bg-white p-6 rounded-lg shadow-sm">
