@@ -14,7 +14,7 @@ const ProblemPanel: React.FC<ProblemPanelProps> = ({ title, difficulty, statemen
   };
 
   return (
-    <div className="w-full md:w-1/2 lg:w-1/2 bg-gray-50 p-4">
+    <div className="w-full bg-gray-50">
       <div className="max-w-5xl mx-auto">
         {/* Problem Header */}
         <div className="bg-white p-6 rounded-lg shadow-sm mb-4">
