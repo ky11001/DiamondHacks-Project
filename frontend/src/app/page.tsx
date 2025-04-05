@@ -28,11 +28,7 @@ export default function Home() {
 
         {/* Code Editor Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <CodeEditor
-            initialCode="def twoSum(self, nums: List[int], target: int) -> List[int]:
-    # Write your code here"
-            language="python3"
-          />
+          <CodeEditor />
 
           {/* Test Cases & Results */}
           <div className="bg-white p-6 rounded-lg shadow-sm">

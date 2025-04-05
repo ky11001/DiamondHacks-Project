@@ -1,16 +1,32 @@
-interface CodeEditorProps {
-  initialCode: string;
-  language: string;
-}
+"use client";
 
-export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
+import { Editor } from '@monaco-editor/react';
+import { useState } from 'react';
+
+export default function CodeEditor() {
+  const [code, setCode] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("python");
+
+  const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedLanguage(event.target.value.toLowerCase());
+  };
+
+  const handleEditorChange = (value: string | undefined) => {
+    if (value !== undefined) {
+      setCode(value);
+    }
+  };
+
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm">
+    <div className="bg-white p-6 rounded-lg shadow-sm h-full">
       <div className="flex items-center justify-between mb-4">
-        <select className="px-3 py-2 border rounded-md text-sm">
-          <option>Python3</option>
-          <option>JavaScript</option>
-          <option>Java</option>
+        <select
+          className="px-3 py-2 border rounded-md text-sm"
+          value={selectedLanguage}
+          onChange={handleLanguageChange}
+        >
+          <option value="python">Python3</option>
+          <option value="java">Java</option>
         </select>
         <div className="space-x-2">
           <button className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
@@ -21,8 +37,25 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
           </button>
         </div>
       </div>
-      <div className="font-mono text-sm bg-gray-50 p-4 rounded-md h-96 overflow-y-auto">
-        <pre className="text-gray-800">{initialCode}</pre>
+      <div className="h-[500px] border rounded-md overflow-hidden">
+        <Editor
+          height="100%"
+          language={selectedLanguage}
+          value={code}
+          onChange={handleEditorChange}
+          theme="vs-light"
+          options={{
+            minimap: { enabled: false },
+            fontSize: 14,
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+            tabSize: 4,
+            wordWrap: 'on',
+            lineNumbers: 'on',
+            renderWhitespace: 'selection',
+            readOnly: false
+          }}
+        />
       </div>
     </div>
   );
