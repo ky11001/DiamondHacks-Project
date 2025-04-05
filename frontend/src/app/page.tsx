@@ -1,6 +1,6 @@
 import React from "react";
 import CodeEditor from './components/CodeEditor';
-import ProblemPanel from './components/ProblemPanel';
+import ProblemPanel from "./components/ProblemPanel";
 
 export default function Home() {
   return (
