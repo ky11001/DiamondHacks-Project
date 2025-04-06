@@ -15,10 +15,13 @@ import ast
 import time
 
 from models import db, Problem
-from app import app
 from py_sandbox import PySandboxRunner, ensure_packages_installed
 from java_sandbox import JavaSandboxRunner
 import google.generativeai as genai
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # File paths
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -34,7 +37,7 @@ JAVA_RESPONSES_FILENAME = os.path.join(
 
 # Google API key
 genai.configure(
-    api_key="AIzaSyCfHTrNkgzxlF3Ua3O3rWFe-RG6Os9evJ8"
+    api_key=os.getenv("GEMINI_API_KEY")
 )  # Replace with your actual Gemini API key
 
 
