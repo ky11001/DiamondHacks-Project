@@ -8,7 +8,7 @@ export default function Header() {
       <div className="flex justify-center">
         <Link href="/">
           <Image
-            src="/problemsLogo.png" // Path to the logo in the public folder
+            src="/vibecheckLogo.png" // Path to the logo in the public folder
             alt="Home Logo"
             className="w-auto h-8" // Adjust height to match the size of the text
             width={32} // Default width
