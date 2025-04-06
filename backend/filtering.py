@@ -4,10 +4,11 @@ Evaluate AI-generated responses against corresponding test cases, and collect th
 These responses and corresponding problems will be added to the DB.
 """
 
+from flask import Flask
 from py_sandbox import PySandboxRunner, ensure_packages_installed
 from models import db, Problem
 from app import app
-
+import os
 import json
 import ast
 
@@ -54,6 +55,14 @@ def evaluate_solution(solution, tests, lang):
 
 # Process each problem
 # TODO: include java functionality
+
+# ✅ Set up Flask app with identical DB config
+app = Flask(__name__)
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(basedir, 'problems.db')}"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db.init_app(app)
+
 with app.app_context():
     db.create_all()
 
@@ -126,4 +135,8 @@ with app.app_context():
             db.session.commit()
             print(f"✅ Problem {problem_id} seeded.")
             n_seeded += 1
+            print("Using DB:", app.config['SQLALCHEMY_DATABASE_URI'])
+
+    problems = Problem.query.all()
+    print([{"id": p.id, "title": p.title} for p in problems])
 print(f"Seeded a total of {n_seeded} problems.")
