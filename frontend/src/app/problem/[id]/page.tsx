@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
 
 import CodeEditor from "@/app/components/CodeEditor";
 import ProblemPanel from "@/app/components/ProblemPanel";
@@ -93,25 +95,42 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-950 flex">
-      <div className="flex flex-col lg:flex-row w-full">
-        <div className="lg:w-1/2 lg:max-h-screen lg:overflow-auto">
-          <ProblemPanel
-            id={problemData.id}
-            title={problemData.title}
-            difficulty={problemData.difficulty}
-            statement={problemData.statement}
-            language={problemData.language}
-            testCases={<TestCases cases={testCases} isSubmitting={isSubmitting} error={testCaseError} />}
+    <div className="min-h-screen bg-gray-50 text-gray-950 flex flex-col">
+      {/* Top Bar */}
+      <div className="bg-white shadow-sm py-2 px-4 flex justify-center items-center">
+        <Link href="/" className="inline-block">
+          <Image
+            src="/vibecheckLogo.png"
+            alt="Vibecheck Logo"
+            width={120}
+            height={60}
+            className="w-auto h-8"
+            priority
           />
-        </div>
-        <div className="lg:w-1/2 h-screen">
-          <CodeEditor
-            onSubmit={handleSubmit}
-            ai_generated_code={problemData.ai_generated_code}
-            isSubmitting={isSubmitting}
-            language={problemData.language}
-          />
+        </Link>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex">
+        <div className="flex flex-col lg:flex-row w-full">
+          <div className="lg:w-1/2 lg:max-h-screen lg:overflow-auto">
+            <ProblemPanel
+              id={problemData.id}
+              title={problemData.title}
+              difficulty={problemData.difficulty}
+              statement={problemData.statement}
+              language={problemData.language}
+              testCases={<TestCases cases={testCases} isSubmitting={isSubmitting} error={testCaseError} />}
+            />
+          </div>
+          <div className="lg:w-1/2 h-screen">
+            <CodeEditor
+              onSubmit={handleSubmit}
+              ai_generated_code={problemData.ai_generated_code}
+              isSubmitting={isSubmitting}
+              language={problemData.language}
+            />
+          </div>
         </div>
       </div>
     </div>
