@@ -25,6 +25,12 @@ class TestAdd:
         correct_code="def add(a, b): return a + b"
     )
 
+    # Overwrite if existing
+    existing = Problem.query.get("100")
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+
     db.session.add(p)
     db.session.commit()
 
