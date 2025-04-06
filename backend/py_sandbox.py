@@ -9,6 +9,33 @@ import sys
 import json
 import subprocess
 
+PACKAGE_ALIASES = {
+    "sklearn": "scikit-learn",
+    "cv2": "opencv-python",
+    "PIL": "Pillow",
+    "bs4": "beautifulsoup4",
+    "yaml": "pyyaml",
+    "Crypto": "pycryptodome",
+    "Image": "Pillow",
+    "tensorflow": "tensorflow",
+    "np": "numpy",  # optional for alias resolution
+    # Add more as needed
+}
+
+def ensure_packages_installed(packages):
+    for pkg in packages:
+        pip_name = PACKAGE_ALIASES.get(pkg, pkg)
+        try:
+            __import__(pkg)
+        except ImportError:
+            print(f"📦 Installing {pkg}...")
+            try:
+                subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
+            except:
+                # Try using the pip name aliasing
+                print(f"Failed to run `pip install -m {pkg}`, trying `pip install -m {pip_name}` instead...")
+                subprocess.check_call([sys.executable, "-m", "pip", "install", pip_name])
+
 
 def _run_pytest_in_subprocess(tmpdir, solution_code, test_code, return_dict):
     test_path = os.path.join(tmpdir, "test_solution.py")

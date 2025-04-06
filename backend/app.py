@@ -6,7 +6,7 @@ from models import db, Problem
 from flask_sqlalchemy import SQLAlchemy
 
 from flask import Flask, request, jsonify, render_template_string
-from py_sandbox import PySandboxRunner
+from py_sandbox import PySandboxRunner, ensure_packages_installed
 from java_sandbox import JavaSandboxRunner
 
 app = Flask(__name__)
@@ -49,13 +49,10 @@ form_template = """
 
   <form id="codeForm">
     <label><strong>Problem ID:</strong></label><br>
-    <input type="text" id="problemId" value="100" /><br><br>
+    <input type="text" id="problemId" value="{{ default_id }}" /><br><br>
 
     <label><strong>Solution Code:</strong></label><br>
-    <textarea name="solution_code" rows="10">
-def add(a, b):
-    return a + b
-    </textarea><br><br>
+    <textarea name="solution_code" rows="30">{{ default_code }}</textarea><br><br>
 
     <button type="submit">Run Code</button>
   </form>
@@ -122,7 +119,12 @@ def add(a, b):
 # ✅ Serve the HTML form at root
 @app.route("/", methods=["GET"])
 def home():
-    return render_template_string(form_template)
+    # Load default problem (131)
+    default_id = "131"
+    problem = Problem.query.get(default_id)
+
+    solution_code = problem.llm_code if problem else "def example():\n  pass"
+    return render_template_string(form_template, default_id=default_id, default_code=solution_code)
 
 
 @app.route("/get_problem/<id>", methods=["GET"])
@@ -139,7 +141,6 @@ def get_problem(id):
         }
     )
 
-
 # ✅ Dynamic test runner route
 @app.route("/run/<id>", methods=["POST"])
 def run(id: str):
@@ -148,22 +149,24 @@ def run(id: str):
     language = data.get("language", "python").lower()
 
     # TODO move this to get_test_code
-    # problem = Problem.query.get(id)
-    # if not problem:
-    #     return jsonify({
-    #         "success": False,
-    #         "error": f"No problem found with ID '{id}'"
-    #     }), 404
-
-    # test_code = problem.test_code
+    problem = Problem.query.get(id)
+    if not problem:
+        return jsonify({
+            "success": False,
+            "error": f"No problem found with ID '{id}'"
+        }), 404
 
     # Get the appropriate test code based on problem ID and language
-    test_code = get_test_code(id, language)
+    test_code = problem.test_code
     if not test_code:
-        return (
-            jsonify({"error": f"No test code found for problem {id} in {language}"}),
-            404,
-        )
+      return (
+          jsonify({"error": f"No test code found for problem {id} in {language}"}),
+          404,
+      )
+
+    # Auto-install required packages
+    if problem.required_packages:
+        ensure_packages_installed(problem.required_packages)
 
     # Select the appropriate runner
     if language == "python":
@@ -182,55 +185,55 @@ def run(id: str):
     return jsonify({"error": result.get("error", "Unknown error")}), 400
 
 
-def get_test_code(problem_id: str, language: str) -> str:
-    """Get test code for a specific problem and language."""
-    # TODO: fetch test code from database
-    # This is a placeholder - in a real app, this would come from a database
-    test_cases = {
-        "1": {
-            "python": """
-import pytest
+# def get_test_code(problem_id: str, language: str) -> str:
+#     """Get test code for a specific problem and language."""
+#     # TODO: fetch test code from database
+#     # This is a placeholder - in a real app, this would come from a database
+#     test_cases = {
+#         "1": {
+#             "python": """
+# import pytest
 
-class TestTwoSum:
-    def test_case1(self):
-        nums = [2, 7, 11, 15]
-        target = 9
-        result = two_sum(nums, target)
-        assert result == [0, 1] or result == [1, 0]
+# class TestTwoSum:
+#     def test_case1(self):
+#         nums = [2, 7, 11, 15]
+#         target = 9
+#         result = two_sum(nums, target)
+#         assert result == [0, 1] or result == [1, 0]
 
-    def test_case2(self):
-        nums = [3, 2, 4]
-        target = 6
-        result = two_sum(nums, target)
-        assert result == [1, 2] or result == [2, 1]
-""",
-            "java": """
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+#     def test_case2(self):
+#         nums = [3, 2, 4]
+#         target = 6
+#         result = two_sum(nums, target)
+#         assert result == [1, 2] or result == [2, 1]
+# """,
+#             "java": """
+# import org.junit.jupiter.api.Test;
+# import static org.junit.jupiter.api.Assertions.*;
 
-public class SolutionTest {
-    @Test
-    public void testCase1() {
-        Solution solution = new Solution();
-        int[] nums = {2, 7, 11, 15};
-        int target = 9;
-        int[] result = solution.twoSum(nums, target);
-        assertArrayEquals(new int[]{0, 1}, result);
-    }
+# public class SolutionTest {
+#     @Test
+#     public void testCase1() {
+#         Solution solution = new Solution();
+#         int[] nums = {2, 7, 11, 15};
+#         int target = 9;
+#         int[] result = solution.twoSum(nums, target);
+#         assertArrayEquals(new int[]{0, 1}, result);
+#     }
 
-    @Test
-    public void testCase2() {
-        Solution solution = new Solution();
-        int[] nums = {3, 2, 4};
-        int target = 6;
-        int[] result = solution.twoSum(nums, target);
-        assertArrayEquals(new int[]{1, 2}, result);
-    }
-}
-""",
-        }
-    }
-    return test_cases.get(problem_id, {}).get(language)
+#     @Test
+#     public void testCase2() {
+#         Solution solution = new Solution();
+#         int[] nums = {3, 2, 4};
+#         int target = 6;
+#         int[] result = solution.twoSum(nums, target);
+#         assertArrayEquals(new int[]{1, 2}, result);
+#     }
+# }
+# """,
+#         }
+#     }
+#     return test_cases.get(problem_id, {}).get(language)
 
 
 if __name__ == "__main__":
