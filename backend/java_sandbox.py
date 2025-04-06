@@ -119,7 +119,7 @@ def _run_junit_in_subprocess(
         # print("results", java_result)
 
         results = parse_junit_report_dir(os.path.join(tmpdir, "reports"))
-        print("result 1", results)
+        # print("result 1", results)
         # # Parse test summary from the output
         # test_summary = {}
         # for line in java_result.stdout.split("\n"):

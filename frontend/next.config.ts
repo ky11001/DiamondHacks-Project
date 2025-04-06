@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         source: "/get_problem/:id",
         destination: "http://127.0.0.1:5000/get_problem/:id",
       },
+      {
+        source: "/list_problems",
+        destination: "http://127.0.0.1:5000/list_problems",
+      },
     ];
   },
 };

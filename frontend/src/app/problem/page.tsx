@@ -20,7 +20,7 @@ export default function Home() {
   useEffect(() => {
     const fetchProblems = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:5000/list_problems");
+        const res = await fetch("/list_problems");
         const data = await res.json();
         setProblems(data);
       } catch (err) {

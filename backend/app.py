@@ -7,9 +7,9 @@ from models import db, Problem
 from flask import Flask, request, jsonify, render_template_string, abort
 from py_sandbox import PySandboxRunner, ensure_packages_installed
 from java_sandbox import JavaSandboxRunner
+from flask_cors import CORS
 
 app = Flask(__name__)
-from flask_cors import CORS
 
 CORS(app)
 
@@ -210,7 +210,7 @@ def run(id: str):
     # Run the code
     result = runner.run(solution_code, test_code)
 
-    print(result["stderr"])
+    # print(result["stderr"])
 
     if "results" in result:
         return jsonify(result), (200 if result.get("success") else 400)
