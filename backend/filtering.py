@@ -106,7 +106,7 @@ with app.app_context():
         ensure_packages_installed(dependencies)
 
         # Evaluate LLM solution against test cases
-        tests_passed = evaluate_solution(llm_solution_code, test_cases, "python3")
+        tests_passed = evaluate_solution(llm_solution_code, test_cases, "Python")
 
         if not tests_passed:
             # If at least one test failed, use this problem -- add it to the DB
@@ -114,9 +114,9 @@ with app.app_context():
             p = Problem(
                 id=problem_id,
                 title="NULL",
-                language="python3",
+                language="Python",
                 required_packages=dependencies,
-                difficulty="NULL",
+                difficulty="Easy",
                 category=category,
                 description=problem_description,
                 llm_prompt=prompt,

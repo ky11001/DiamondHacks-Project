@@ -10,6 +10,8 @@ from py_sandbox import PySandboxRunner, ensure_packages_installed
 from java_sandbox import JavaSandboxRunner
 
 app = Flask(__name__)
+from flask_cors import CORS
+CORS(app)
 
 # Initialize sandbox runners
 py_runner = PySandboxRunner()
@@ -146,14 +148,26 @@ def get_problem(id):
 @app.route("/list_problems")
 def list_problems():
     problems = Problem.query.all()
-    return jsonify([{"id": p.id, "title": p.title} for p in problems])
+    return jsonify([
+        {
+            "id": p.id,
+            "title": p.title,
+            "category": p.category,
+            "difficulty": p.difficulty,
+            # optionally include more fields if you need them
+            # "language": p.language,
+            # "required_packages": p.required_packages,
+        }
+        for p in problems
+    ])
+
 
 # ✅ Dynamic test runner route
 @app.route("/run/<id>", methods=["POST"])
 def run(id: str):
     data = request.get_json()
     solution_code = data.get("solution_code", "")
-    language = data.get("language", "python").lower()
+    language = data.get("language", "Python").lower()
 
     # TODO move this to get_test_code
     problem = Problem.query.get(id)
