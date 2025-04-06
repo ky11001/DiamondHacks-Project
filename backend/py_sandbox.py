@@ -22,6 +22,7 @@ PACKAGE_ALIASES = {
     # Add more as needed
 }
 
+
 def ensure_packages_installed(packages):
     for pkg in packages:
         pip_name = PACKAGE_ALIASES.get(pkg, pkg)
@@ -33,8 +34,12 @@ def ensure_packages_installed(packages):
                 subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
             except:
                 # Try using the pip name aliasing
-                print(f"Failed to run `pip install -m {pkg}`, trying `pip install -m {pip_name}` instead...")
-                subprocess.check_call([sys.executable, "-m", "pip", "install", pip_name])
+                print(
+                    f"Failed to run `pip install -m {pkg}`, trying `pip install -m {pip_name}` instead..."
+                )
+                subprocess.check_call(
+                    [sys.executable, "-m", "pip", "install", pip_name]
+                )
 
 
 def _run_pytest_in_subprocess(tmpdir, solution_code, test_code, return_dict):
@@ -59,7 +64,7 @@ def _run_pytest_in_subprocess(tmpdir, solution_code, test_code, return_dict):
             ],
             capture_output=True,
             text=True,
-            timeout=3,
+            timeout=10,
             cwd=tmpdir,
             env=env,
         )

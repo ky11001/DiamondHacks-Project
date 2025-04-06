@@ -78,7 +78,7 @@ def _run_junit_in_subprocess(
             ],
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=15,
             cwd=tmpdir,
         )
 
