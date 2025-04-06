@@ -117,8 +117,8 @@ form_template = """
 def home():
     problems = Problem.query.all()
     print([{"id": p.id, "title": p.title} for p in problems])
-    # Load default problem (131)
-    default_id = "131"
+    # Default load problem 1
+    default_id = "1"
     problem = Problem.query.get(default_id)
 
     solution_code = problem.llm_code if problem else "def example():\n  pass"
