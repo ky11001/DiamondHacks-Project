@@ -1,77 +1,104 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import CodeEditor from './components/CodeEditor';
+import ProblemPanel from "./components/ProblemPanel";
+import TestCases from "./components/TestCases";
+
+type Difficulty = "Easy" | "Medium" | "Hard";
+
+interface ProblemData {
+  id: string;
+  title: string;
+  statement: string;
+  difficulty: Difficulty;
+  ai_generated_code: string;
+}
+
+function isDifficulty(value: string): value is Difficulty {
+  return ["Easy", "Medium", "Hard"].includes(value);
+}
+
 export default function Home() {
+  const [testCases, setTestCases] = useState<Array<{ id: number; result: boolean }>>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [problemData, setProblemData] = useState<ProblemData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const id = "1"; // This could come from route params in a real app
+
+  useEffect(() => {
+    const fetchProblemData = async () => {
+      try {
+        const response = await fetch(`/get_problem/${id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch problem data');
+        }
+        const data = await response.json();
+        if (!isDifficulty(data.difficulty)) {
+          throw new Error('Invalid difficulty level received from API');
+        }
+        setProblemData(data as ProblemData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProblemData();
+  }, [id]);
+
+  const handleSubmit = async (code: string) => {
+    setIsSubmitting(true);
+    try {
+      // This would be replaced with an actual API call
+      // TODO replace "1" with the actual id that is passed into the component
+      const response = await fetch(`/run/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ solution_code: code })
+      });
+      const data = await response.json();
+
+      setTestCases(data.results);
+    } catch (error) {
+      console.error('Error submitting code:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center">Loading...</div>;
+  }
+
+  if (error || !problemData) {
+    return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center text-red-600">{error || 'Problem not found'}</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-5xl mx-auto">
-        {/* Problem Header */}
-        <div className="bg-white p-6 rounded-lg shadow-sm mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-semibold">1. Two Sum</h1>
-            <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full">
-              Easy
-            </span>
-          </div>
-          <div className="prose max-w-none">
-            <p className="text-gray-600">
-              Given an array of integers <code>nums</code> and an integer <code>target</code>, return indices of the two numbers such that they add up to <code>target</code>.
-              You may assume that each input would have exactly one solution, and you may not use the same element twice.
-            </p>
-            <h3 className="text-lg font-medium mt-4 mb-2">Example 1:</h3>
-            <pre className="bg-gray-50 p-4 rounded-md">
-              <code>Input: nums = [2,7,11,15], target = 9
-                Output: [0,1]
-                Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].</code>
-            </pre>
-          </div>
+    <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
+      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left Column: ProblemPanel and TestCases */}
+        <div className="flex flex-col gap-4">
+          <ProblemPanel
+            id={problemData.id}
+            title={problemData.title}
+            difficulty={problemData.difficulty}
+            statement={problemData.statement}
+          />
+          <TestCases cases={testCases} isSubmitting={isSubmitting} />
         </div>
 
-        {/* Code Editor Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <select className="px-3 py-2 border rounded-md text-sm">
-                <option>Python3</option>
-                <option>JavaScript</option>
-                <option>Java</option>
-              </select>
-              <div className="space-x-2">
-                <button className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
-                  Submit
-                </button>
-                <button className="px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700">
-                  Run
-                </button>
-              </div>
-            </div>
-            <div className="font-mono text-sm bg-gray-50 p-4 rounded-md h-96 overflow-y-auto">
-              <pre className="text-gray-800">{`def twoSum(self, nums: List[int], target: int) -> List[int]:
-    # Write your code here`}</pre>
-            </div>
-          </div>
-
-          {/* Test Cases & Results */}
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <h3 className="text-lg font-medium mb-4">Test Cases</h3>
-            <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-md">
-                <div className="text-sm font-medium text-gray-600 mb-2">Case 1:</div>
-                <div className="text-sm font-mono">
-                  Input: nums = [2,7,11,15], target = 9
-                </div>
-                <div className="text-sm font-mono text-green-600 mt-2">
-                  Expected: [0,1]
-                </div>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-md">
-                <div className="text-sm font-medium text-gray-600 mb-2">Case 2:</div>
-                <div className="text-sm font-mono">
-                  Input: nums = [3,2,4], target = 6
-                </div>
-                <div className="text-sm font-mono text-green-600 mt-2">
-                  Expected: [1,2]
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Right Column: CodeEditor */}
+        <div>
+          <CodeEditor
+            onSubmit={handleSubmit}
+            ai_generated_code={problemData.ai_generated_code}
+            isSubmitting={isSubmitting}
+          />
         </div>
       </div>
     </div>
