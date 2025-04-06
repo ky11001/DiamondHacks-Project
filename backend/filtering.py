@@ -101,6 +101,7 @@ with app.app_context():
 
         if not tests_passed:
             # If at least one test failed, use this problem -- add it to the DB
+            problem_id = n_seeded + 1 # Re-number IDs
             p = Problem(
                 id=problem_id,
                 title="NULL",
