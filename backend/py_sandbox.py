@@ -23,7 +23,9 @@ def _run_pytest_in_subprocess(tmpdir, solution_code, test_code, return_dict):
     try:
         result = subprocess.run(
             [
-                sys.executable, "-m", "pytest",
+                sys.executable,
+                "-m",
+                "pytest",
                 test_path,
                 "--json-report",
                 f"--json-report-file={report_path}",
@@ -32,16 +34,18 @@ def _run_pytest_in_subprocess(tmpdir, solution_code, test_code, return_dict):
             text=True,
             timeout=3,
             cwd=tmpdir,
-            env=env
+            env=env,
         )
 
         if not os.path.exists(report_path):
-            return_dict.update({
-                "success": False,
-                "error": "Test report not generated",
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-            })
+            return_dict.update(
+                {
+                    "success": False,
+                    "error": "Test report not generated.",
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                }
+            )
             return
 
         with open(report_path, "r") as f:
@@ -52,28 +56,35 @@ def _run_pytest_in_subprocess(tmpdir, solution_code, test_code, return_dict):
         for test in report_data.get("tests", []):
             if test["outcome"] != "passed":
                 all_passed = False
-            results.append({
-                "name": test["nodeid"],
-                "outcome": test["outcome"],
-                "message": test.get("longrepr", "")
-            })
+            results.append(
+                {
+                    "name": test["nodeid"],
+                    "outcome": test["outcome"],
+                    "message": test.get("longrepr", ""),
+                }
+            )
 
-        return_dict.update({
-            "success": all_passed,
-            "results": results,
-            "stdout": result.stdout,
-            "stderr": result.stderr
-        })
+        return_dict.update(
+            {
+                "success": all_passed,
+                "results": results,
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+            }
+        )
 
     except subprocess.TimeoutExpired:
-        return_dict.update({
-            "success": False,
-            "error": "Test execution timed out",
-            "stdout": "",
-            "stderr": ""
-        })
+        return_dict.update(
+            {
+                "success": False,
+                "error": "Test execution timed out",
+                "stdout": "",
+                "stderr": "",
+            }
+        )
 
-class SandboxRunner:
+
+class PySandboxRunner:
     TIME_LIMIT = 3  # seconds
 
     def run(self, solution_code, test_code):
@@ -83,7 +94,7 @@ class SandboxRunner:
 
             p = multiprocessing.Process(
                 target=_run_pytest_in_subprocess,
-                args=(tmpdir, solution_code, test_code, return_dict)
+                args=(tmpdir, solution_code, test_code, return_dict),
             )
 
             p.start()
@@ -95,7 +106,7 @@ class SandboxRunner:
                     "success": False,
                     "error": "Test execution hard timeout (killed process)",
                     "stdout": "",
-                    "stderr": ""
+                    "stderr": "",
                 }
 
             return return_dict.copy()

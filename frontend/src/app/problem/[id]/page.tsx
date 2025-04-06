@@ -14,6 +14,13 @@ interface ProblemData {
   statement: string;
   difficulty: Difficulty;
   ai_generated_code: string;
+  language: string;
+}
+
+interface TestCase {
+  id: number;
+  result: boolean;
+  message: string;
 }
 
 function isDifficulty(value: string): value is Difficulty {
@@ -21,11 +28,12 @@ function isDifficulty(value: string): value is Difficulty {
 }
 
 export default function Home() {
-  const [testCases, setTestCases] = useState<Array<{ id: number; result: boolean }>>([]);
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [problemData, setProblemData] = useState<ProblemData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [testCaseError, setTestCaseError] = useState<string | undefined>(undefined);
 
   const id = "1"; // This could come from route params in a real app
 
@@ -42,7 +50,7 @@ export default function Home() {
         }
         setProblemData(data as ProblemData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setLoadError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setIsLoading(false);
       }
@@ -59,49 +67,61 @@ export default function Home() {
       const response = await fetch(`/run/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ solution_code: code })
+        body: JSON.stringify({ solution_code: code, language: problemData?.language })
       });
       const data = await response.json();
+      if (!data.results || data.error) {
+        setTestCaseError(data.error || 'No test results received');
+        return;
+      } else {
+        setTestCaseError(undefined);
+        setTestCases(data.results.map((result: any) => ({
+          id: result.name,
+          result: result.outcome === 'passed',
+          message: result.message
+        })));
+      }
 
-      setTestCases(data.results);
     } catch (error) {
       console.error('Error submitting code:', error);
     } finally {
       setIsSubmitting(false);
     }
-  };
 
-  if (isLoading) {
-    return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center">Loading...</div>;
-  }
+    if (isLoading) {
+      return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center">Loading...</div>;
+    }
 
-  if (error || !problemData) {
-    return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center text-red-600">{error || 'Problem not found'}</div>;
-  }
+    if (loadError || !problemData) {
+      return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center text-red-600">{loadError || 'Problem not found'}</div>;
+    }
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Column: ProblemPanel and TestCases */}
-        <div className="flex flex-col gap-4">
-          <ProblemPanel
-            id={problemData.id}
-            title={problemData.title}
-            difficulty={problemData.difficulty}
-            statement={problemData.statement}
-          />
-          <TestCases cases={testCases} isSubmitting={isSubmitting} />
-        </div>
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Left Column: ProblemPanel and TestCases */}
+          <div className="flex flex-col gap-4">
+            <ProblemPanel
+              id={problemData.id}
+              title={problemData.title}
+              difficulty={problemData.difficulty}
+              statement={problemData.statement}
+              language={problemData.language}
+            />
+            <TestCases cases={testCases} isSubmitting={isSubmitting} error={testCaseError} />
+          </div>
 
-        {/* Right Column: CodeEditor */}
-        <div>
-          <CodeEditor
-            onSubmit={handleSubmit}
-            ai_generated_code={problemData.ai_generated_code}
-            isSubmitting={isSubmitting}
-          />
+          {/* Right Column: CodeEditor */}
+          <div>
+            <CodeEditor
+              onSubmit={handleSubmit}
+              ai_generated_code={problemData.ai_generated_code}
+              isSubmitting={isSubmitting}
+              language={problemData.language}
+            />
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 }
