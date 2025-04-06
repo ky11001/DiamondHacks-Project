@@ -52,7 +52,6 @@ export default function Home() {
       <div className="relative min-h-screen p-4 text-gray-950 flex flex-col items-center overflow-hidden">
         {/* Background Animation */}
         <div className="absolute inset-0 -z-10 liquid-gradient-animation"></div>
-
         {/* Content */}
         <div className="flex justify-center mb-10 animate-bob">
           <Image
