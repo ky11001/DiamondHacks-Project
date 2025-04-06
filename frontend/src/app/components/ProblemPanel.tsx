@@ -1,4 +1,5 @@
 import React from "react";
+import ReactMarkdown from "react-markdown";
 
 interface ProblemPanelProps {
   id: string;
@@ -33,7 +34,7 @@ const ProblemPanel: React.FC<ProblemPanelProps> = ({ id, title, difficulty, stat
             <i className="text-gray-600">Programming Language: {language}</i>
           </div>
           <div className="prose max-w-none mb-8">
-            <p className="text-gray-600">{statement}</p>
+            <ReactMarkdown>{statement}</ReactMarkdown>
           </div>
           {testCases}
         </div>
