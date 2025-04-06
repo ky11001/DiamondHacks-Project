@@ -10,7 +10,7 @@ VibeCheck is a coding practice platform where users are challenged to debug flaw
 
 ## How we Built It
 
-Problem Bank: We used the NaturalCodeBench Python and Java problem sets as a base. NaturalCodeBench is a state-of-the-art dataset consisting of realistic, human-annotated coding challenges that has been used to evaluate the coding abilities of numerous LLMs. Using the Google Gemini API, we generated AI solutions, extracted failed outputs, and built a dataset of these erroneous generations. For each one, Gemini also generated titles, task descriptions, and perceived difficulty.
+Problem Bank: We used the NaturalCodeBench [1] Python and Java problem sets as a base. NaturalCodeBench is a state-of-the-art dataset consisting of realistic, human-annotated coding challenges that has been used to evaluate the coding abilities of numerous LLMs. Using the Google Gemini API, we generated AI solutions, extracted failed outputs, and built a dataset of these erroneous generations. For each one, Gemini also generated titles, task descriptions, and perceived difficulty.
 
 We used the Monaco Editor API to create a Custom IDE, which is initially populated with AI-generated code, with changes that the user must make to pass the test cases. The code editor is compatible with both Python and Java.
 
