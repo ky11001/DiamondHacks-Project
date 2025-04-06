@@ -139,9 +139,6 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Image from "next/image";
-import Header from "./components/Header";
-import { FaSort } from "react-icons/fa";
 
 export default function Home() {
   return (
