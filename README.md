@@ -44,6 +44,9 @@ Developers appreciate environments that don’t just hand-hold—they want to th
 
 AI integration into software workflows needs thoughtful design, not just flashy outputs.
 
+## References
+1. NaturalCodeBench: https://arxiv.org/pdf/2405.04520
+
 ## What's Next
 
 Looking ahead, we plan to expand our platform by adding more coding challenges, enhancing AI capabilities, and incorporating user feedback to improve the learning experience. We aim to build partnerships with educational institutions and tech companies to further establish VibeCheck as a go-to resource for coding interview preparation.
