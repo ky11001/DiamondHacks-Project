@@ -1,83 +1,101 @@
-import tempfile
-import subprocess
-import os
-import json
-import sys
-import traceback
-from io import StringIO
 import multiprocessing
-import contextlib
-import resource
 
-TIME_LIMIT = 3 # seconds
-MEMORY_LIMIT_MB = 100 # per process
+# Force 'fork' start method for compatibility (macOS)
+multiprocessing.set_start_method("fork", force=True)
 
-@contextlib.contextmanager
-def capture_stdout():
-    old_stdout = sys.stdout
-    sys.stdout = StringIO()
+import tempfile
+import os
+import sys
+import json
+import subprocess
+
+
+def _run_pytest_in_subprocess(tmpdir, solution_code, test_code, return_dict):
+    test_path = os.path.join(tmpdir, "test_solution.py")
+    report_path = os.path.join(tmpdir, ".report.json")
+
+    with open(test_path, "w") as f:
+        f.write(solution_code + "\n\n" + test_code)
+
+    env = os.environ.copy()
+    env["PYTHONPATH"] = tmpdir
+
     try:
-        yield sys.stdout
-    finally:
-        sys.stdout = old_stdout
+        result = subprocess.run(
+            [
+                sys.executable, "-m", "pytest",
+                test_path,
+                "--json-report",
+                f"--json-report-file={report_path}",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            cwd=tmpdir,
+            env=env
+        )
 
+        if not os.path.exists(report_path):
+            return_dict.update({
+                "success": False,
+                "error": "Test report not generated",
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+            })
+            return
 
-def set_resource_limits():
-    memory_bytes = MEMORY_LIMIT_MB * 1024 * 1024
-    try:
-        resource.setrlimit(resource.RLIMIT_DATA, (memory_bytes, memory_bytes))
-    except ValueError:
-        # macOS can be picky — fall back or ignore
-        pass
+        with open(report_path, "r") as f:
+            report_data = json.load(f)
 
-def run_test_code(code: str, test_code: str, return_dict):
-    try:
-        set_resource_limits()
-        combined_code = code + "\n\n" + test_code
+        results = []
+        all_passed = True
+        for test in report_data.get("tests", []):
+            if test["outcome"] != "passed":
+                all_passed = False
+            results.append({
+                "name": test["nodeid"],
+                "outcome": test["outcome"],
+                "message": test.get("longrepr", "")
+            })
 
-        # Minimal safe builtins
-        safe_builtins = {
-            "print": print,
-            "range": range,
-            "len": len,
-            "str": str,
-            "int": int,
-            "float": float,
-            "bool": bool,
-            "list": list,
-            "dict": dict,
-            "set": set,
-            "tuple": tuple,
-            "enumerate": enumerate,
-            "zip": zip,
-            "sorted": sorted,
-        }
+        return_dict.update({
+            "success": all_passed,
+            "results": results,
+            "stdout": result.stdout,
+            "stderr": result.stderr
+        })
 
-        safe_globals = {"__builtins__" : safe_builtins}
-        with capture_stdout() as output:
-            exec(combined_code, safe_globals)
+    except subprocess.TimeoutExpired:
+        return_dict.update({
+            "success": False,
+            "error": "Test execution timed out",
+            "stdout": "",
+            "stderr": ""
+        })
 
-        return_dict["output"] = output.getvalue()
-        return_dict["success"] = True
+class SandboxRunner:
+    TIME_LIMIT = 3  # seconds
 
-    except Exception as e:
-        return_dict["success"] = False
-        return_dict["error"] = traceback.format_exc()
+    def run(self, solution_code, test_code):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manager = multiprocessing.Manager()
+            return_dict = manager.dict()
 
-def sandbox_run_with_tests(code: str, test_code: str) -> dict:
-    manager = multiprocessing.Manager()
-    return_dict = manager.dict()
+            p = multiprocessing.Process(
+                target=_run_pytest_in_subprocess,
+                args=(tmpdir, solution_code, test_code, return_dict)
+            )
 
-    process = multiprocessing.Process(target=run_test_code, args=(code, test_code, return_dict))
-    process.start()
-    process.join(TIME_LIMIT)
+            p.start()
+            p.join(self.TIME_LIMIT)
 
-    if process.is_alive():
-        process.terminate()
-        return {
-            "success" : False,
-            "error" : "Execution timed out.",
-        }
-    
-    return return_dict.copy()
+            if p.is_alive():
+                p.terminate()
+                return {
+                    "success": False,
+                    "error": "Test execution hard timeout (killed process)",
+                    "stdout": "",
+                    "stderr": ""
+                }
 
+            return return_dict.copy()
