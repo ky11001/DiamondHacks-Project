@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
-
+import Header from "@/app/components/Header";
 import CodeEditor from "@/app/components/CodeEditor";
 import ProblemPanel from "@/app/components/ProblemPanel";
 import TestCases from "@/app/components/TestCases";
@@ -30,14 +28,15 @@ interface TestCase {
 function isDifficulty(value: string): value is Difficulty {
   return ["easy", "medium", "hard"].includes(value.toLowerCase());
 }
-export default function Home() {
+
+export default function ProblemPage() {
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [problemData, setProblemData] = useState<ProblemData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [testCaseError, setTestCaseError] = useState<string | undefined>(undefined);
-  const [currentCode, setCurrentCode] = useState('');
+  const [currentCode, setCurrentCode] = useState("");
   const params = useParams();
 
   const id = params?.id as string;
@@ -49,7 +48,7 @@ export default function Home() {
         if (!response.ok) throw new Error("Failed to fetch problem data");
         const data = await response.json();
         data.difficulty = data.difficulty.toLowerCase();
-        if (!isDifficulty(data.difficulty)) throw new Error('Invalid difficulty level from API');
+        if (!isDifficulty(data.difficulty)) throw new Error("Invalid difficulty level from API");
         setProblemData(data);
         setCurrentCode(data.ai_generated_code);
       } catch (err) {
@@ -111,47 +110,52 @@ export default function Home() {
 
   // Render the main content
   return (
-    <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
-
-      {/* Top Bar */}
-      <div className="bg-white shadow-sm py-2 px-4 flex justify-center items-center">
-        <Link href="/" className="inline-block">
-          <Image
-            src="/vibecheckLogo.png"
-            alt="Vibecheck Logo"
-            width={120}
-            height={60}
-            className="w-auto h-8"
-            priority
-          />
-        </Link>
-      </div>
+    <>
+    <Header />
+    <div className="relative min-h-screen p-4 text-gray-950 overflow-hidden">
+      
+      {/* Animated Background */}
+      <div className="absolute inset-0 -z-10 liquid-gradient-animation"></div>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
-        <div className="flex flex-col lg:flex-row w-full">
-          <div className="lg:w-1/2 lg:max-h-screen lg:overflow-auto">
+      <div className="flex flex-col lg:flex-row gap-4 mt-4">
+        {/* Left Column: Problem Panel and Test Cases */}
+        <div className="lg:w-1/2 flex flex-col gap-4">
+          <div className="bg-white shadow-lg rounded-lg p-4">
             <ProblemPanel
               id={problemData.id}
               title={problemData.title}
               difficulty={problemData.difficulty}
               statement={problemData.statement}
               language={problemData.language}
-              testCases={<TestCases cases={testCases} isSubmitting={isSubmitting} error={testCaseError} />}
+              testCases={
+                <TestCases
+                  cases={testCases}
+                  isSubmitting={isSubmitting}
+                  error={testCaseError}
+                />
+              }
             />
           </div>
-          <div className="lg:w-1/2 h-screen">
-            <CodeEditor
-              onSubmit={handleSubmit}
-              onCodeChange={(code) => setCurrentCode(code)}
-              ai_generated_code={problemData.ai_generated_code}
-              isSubmitting={isSubmitting}
-              language={problemData.language}
-            />
-          </div>
-          <ChatBot currentCode={currentCode} />
+        </div>
+
+        {/* Right Column: Code Editor */}
+        <div className="lg:w-1/2 bg-white shadow-lg rounded-lg p-4">
+          <CodeEditor
+            onSubmit={handleSubmit}
+            onCodeChange={(code) => setCurrentCode(code)}
+            ai_generated_code={problemData.ai_generated_code}
+            isSubmitting={isSubmitting}
+            language={problemData.language}
+          />
         </div>
       </div>
+
+      {/* ChatBot */}
+      <div className="mt-4">
+        <ChatBot currentCode={currentCode} />
+      </div>
     </div>
+    </>
   );
 }
