@@ -32,6 +32,8 @@ Successfully built a robust pipeline to parse, transform, and present AI-generat
 
 Achieved AI model performance comparable to state-of-the-art tools at a fraction of the cost.
 
+Constructed a built-in IDE and unit testing environment that automatically installs necessary dependencies and packages.
+
 Built a clean and intuitive training website for users to practice challenges.
 
 ## What we Learned
