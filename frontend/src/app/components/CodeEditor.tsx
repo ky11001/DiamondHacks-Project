@@ -7,15 +7,11 @@ interface CodeEditorProps {
   onSubmit: (code: string) => void;
   ai_generated_code: string;
   isSubmitting: boolean;
+  language: string;
 }
 
-export default function CodeEditor({ onSubmit, ai_generated_code, isSubmitting }: CodeEditorProps) {
+export default function CodeEditor({ onSubmit, ai_generated_code, isSubmitting, language }: CodeEditorProps) {
   const [code, setCode] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState("python");
-
-  const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedLanguage(event.target.value.toLowerCase());
-  };
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
@@ -30,14 +26,6 @@ export default function CodeEditor({ onSubmit, ai_generated_code, isSubmitting }
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm h-full">
       <div className="flex items-center justify-between mb-4">
-        <select
-          className="px-3 py-2 border rounded-md text-sm"
-          value={selectedLanguage}
-          onChange={handleLanguageChange}
-        >
-          <option value="python">Python3</option>
-          <option value="java">Java</option>
-        </select>
         <div className="space-x-2">
           <button
             onClick={handleSubmit}
@@ -51,7 +39,7 @@ export default function CodeEditor({ onSubmit, ai_generated_code, isSubmitting }
       <div className="h-[500px] border rounded-md overflow-hidden">
         <Editor
           height="100%"
-          language={selectedLanguage}
+          language={language}
           value={code}
           defaultValue={ai_generated_code}
           onChange={handleEditorChange}

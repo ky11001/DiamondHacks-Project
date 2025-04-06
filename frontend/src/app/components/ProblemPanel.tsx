@@ -5,9 +5,10 @@ interface ProblemPanelProps {
   title: string;
   difficulty: "Easy" | "Medium" | "Hard";
   statement: string;
+  language: string;
 }
 
-const ProblemPanel: React.FC<ProblemPanelProps> = ({ id, title, difficulty, statement }) => {
+const ProblemPanel: React.FC<ProblemPanelProps> = ({ id, title, difficulty, statement, language }) => {
   const difficultyColors = {
     Easy: "bg-green-100 text-green-800",
     Medium: "bg-yellow-100 text-yellow-800",
@@ -26,6 +27,9 @@ const ProblemPanel: React.FC<ProblemPanelProps> = ({ id, title, difficulty, stat
             >
               {difficulty}
             </span>
+          </div>
+          <div className="prose max-w-none">
+            <i className="text-gray-600">Programming Language: {language}</i>
           </div>
           <div className="prose max-w-none">
             <p className="text-gray-600">{statement}</p>

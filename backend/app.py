@@ -1,7 +1,12 @@
 from flask import Flask, request, jsonify, render_template_string
-from sandbox import SandboxRunner
+from py_sandbox import PySandboxRunner
+from java_sandbox import JavaSandboxRunner
 
 app = Flask(__name__)
+
+# Initialize sandbox runners
+py_runner = PySandboxRunner()
+java_runner = JavaSandboxRunner()
 
 # Simple HTML form to test from browser
 form_template = """
@@ -153,13 +158,15 @@ def home():
 
 @app.route("/get_problem/<id>", methods=["GET"])
 def get_problem(id):
+    # TODO: fetch problem data from database
     return jsonify(
         {
             "id": id,
-            "title": "First problem!!!!",
+            "title": "First problem!",
             "statement": "Statement for problem " + id,
             "difficulty": "Easy",
-            "ai_generated_code": "# your code here",
+            "language": "python",
+            "ai_generated_code": "def add(a, b):\n    return a + b\n",
         }
     )
 
@@ -167,33 +174,85 @@ def get_problem(id):
 @app.route("/run/<id>", methods=["POST"])
 def run(id: str):
     data = request.get_json()
-    # solution_code = data.get("solution_code", "")
-    return jsonify(
-        {
-            "results": [
-                {"id": 1, "result": True},
-                {"id": 2, "result": False},
-                {"id": 3, "result": True},
-            ]
-        }
-    )
+    solution_code = data.get("solution_code", "")
+    language = data.get("language", "python").lower()
 
-    runner = SandboxRunner()
+    # Get the appropriate test code based on problem ID and language
+    test_code = get_test_code(id, language)
+    if not test_code:
+        return (
+            jsonify({"error": f"No test code found for problem {id} in {language}"}),
+            404,
+        )
+
+    # Select the appropriate runner
+    if language == "python":
+        runner = py_runner
+    elif language == "java":
+        runner = java_runner
+    else:
+        return jsonify({"error": f"Unsupported language: {language}"}), 400
+
+    # Run the code
     result = runner.run(solution_code, test_code)
 
     if "results" in result:
         # Test report generated successfully, even if some tests failed
         return jsonify(result), (200 if result.get("success") else 400)
 
-    # Otherwise, some execution error (e.g., timeout or syntax error)
-    return jsonify({
-        "success": False,
-        "error": result.get("error", "Unknown error"),
-        "stdout": result.get("stdout", ""),
-        "stderr": result.get("stderr", "")
-    }), 400
+    return jsonify({"error": result.get("error", "Unknown error")}), 400
 
 
-    
+def get_test_code(problem_id: str, language: str) -> str:
+    """Get test code for a specific problem and language."""
+    # TODO: fetch test code from database
+    # This is a placeholder - in a real app, this would come from a database
+    test_cases = {
+        "1": {
+            "python": """
+import pytest
+
+class TestTwoSum:
+    def test_case1(self):
+        nums = [2, 7, 11, 15]
+        target = 9
+        result = two_sum(nums, target)
+        assert result == [0, 1] or result == [1, 0]
+
+    def test_case2(self):
+        nums = [3, 2, 4]
+        target = 6
+        result = two_sum(nums, target)
+        assert result == [1, 2] or result == [2, 1]
+""",
+            "java": """
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class SolutionTest {
+    @Test
+    public void testCase1() {
+        Solution solution = new Solution();
+        int[] nums = {2, 7, 11, 15};
+        int target = 9;
+        int[] result = solution.twoSum(nums, target);
+        assertArrayEquals(new int[]{0, 1}, result);
+    }
+
+    @Test
+    public void testCase2() {
+        Solution solution = new Solution();
+        int[] nums = {3, 2, 4};
+        int target = 6;
+        int[] result = solution.twoSum(nums, target);
+        assertArrayEquals(new int[]{1, 2}, result);
+    }
+}
+""",
+        }
+    }
+    return test_cases.get(problem_id, {}).get(language)
+
+
 if __name__ == "__main__":
     app.run(debug=True)
