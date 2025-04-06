@@ -235,6 +235,22 @@ def run(id: str):
 #     }
 #     return test_cases.get(problem_id, {}).get(language)
 
+@app.route("/check_difficulties", methods=["GET"])
+def check_difficulties():
+    valid_difficulties = {"easy", "medium", "hard"}
+    results = []
+
+    for id_num in range(0, 2001):
+        problem = Problem.query.get(str(id_num))
+        if problem:
+            difficulty = problem.difficulty.strip().lower() if problem.difficulty else ""
+            if difficulty not in valid_difficulties:
+                results.append(f"❌ Problem {id_num}: Invalid difficulty -> '{problem.difficulty}'")
+        else:
+            results.append(f"⚠️ Problem {id_num}: Not found in DB")
+
+    return "<br>".join(results)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
