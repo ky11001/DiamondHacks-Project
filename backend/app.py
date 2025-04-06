@@ -3,7 +3,6 @@ import multiprocessing
 multiprocessing.set_start_method("fork", force=True)
 
 from models import db, Problem
-from flask_sqlalchemy import SQLAlchemy
 
 from flask import Flask, request, jsonify, render_template_string, abort
 from py_sandbox import PySandboxRunner, ensure_packages_installed
@@ -174,14 +173,13 @@ def list_problems():
     )
 
 
-# ✅ Dynamic test runner route
+# Dynamic test runner route
 @app.route("/run/<id>", methods=["POST"])
 def run(id: str):
     data = request.get_json()
     solution_code = data.get("solution_code", "")
     language = data.get("language", "Python").lower()
 
-    # TODO move this to get_test_code
     problem = Problem.query.get(id)
     if not problem:
         return (
@@ -220,6 +218,7 @@ def run(id: str):
     return jsonify({"error": result.get("error", "Unknown error")}), 400
 
 
+# Initialize
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
