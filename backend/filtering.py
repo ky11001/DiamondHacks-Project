@@ -23,33 +23,42 @@ import google.generativeai as genai
 # File paths
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-PYTHON_PROBLEMS_FILENAME = os.path.join(basedir, 'data/problems/ncb_python_en.jsonl')
-PYTHON_RESPONSES_FILENAME = os.path.join(basedir, 'data/responses/ncb_python_responses.jsonl')
-JAVA_PROBLEMS_FILENAME = os.path.join(basedir, 'data/problems/ncb_java_en.jsonl')
-JAVA_RESPONSES_FILENAME = os.path.join(basedir, 'data/responses/ncb_java_responses.jsonl')
+PYTHON_PROBLEMS_FILENAME = os.path.join(basedir, "data/problems/ncb_python_en.jsonl")
+PYTHON_RESPONSES_FILENAME = os.path.join(
+    basedir, "data/responses/ncb_python_responses.jsonl"
+)
+JAVA_PROBLEMS_FILENAME = os.path.join(basedir, "data/problems/ncb_java_en.jsonl")
+JAVA_RESPONSES_FILENAME = os.path.join(
+    basedir, "data/responses/ncb_java_responses.jsonl"
+)
 
 # Google API key
-genai.configure(api_key="AIzaSyCfHTrNkgzxlF3Ua3O3rWFe-RG6Os9evJ8")  # Replace with your actual Gemini API key
+genai.configure(
+    api_key="AIzaSyCfHTrNkgzxlF3Ua3O3rWFe-RG6Os9evJ8"
+)  # Replace with your actual Gemini API key
+
 
 # Utility to generate title and difficulty
 def generate_title_difficulty_summary(problem_description, llm_code=None):
     prompt = f"""
 You are a helpful assistant for classifying programming problems.
 
-Given the following problem description and AI-generated solution, come up with:
+Given the following prompt representing a coding problem and AI-generated solution, come up with:
 1. A short, descriptive title (less than 10 words)
 2. A difficulty estimate: "easy", "medium", or "hard"
-3. A readible description of the problem (user-friendly), still cover the technicals and explains all the important details. Format in a way leetcode does it, taking punctionation, readibility from new lines, and other readibility elements into consideration.
+3. A description of the problem (user-friendly) in markdown (compatible with react-markdown) that covers the technicals in a concise way. Format in a way leetcode does it, taking punctuation, readability from new lines and headings, and other readability elements into consideration.
 
 Respond strictly in the format:
 Title: <your title>
 Difficulty: <your difficulty>
-Summary: <your summary>
+Description:
+<your description>
 
-Problem Description:
+Prompt:
 {problem_description}
 
 LLM Code (optional):
+Note that all java code must be wrapped in a class called Solution.
 {llm_code or ""}
 """
 
@@ -58,17 +67,26 @@ LLM Code (optional):
 
     title = "Untitled"
     difficulty = "easy"
-    summary = "No summary provided."
+    description = []
+    in_description = False
     for line in response.text.splitlines():
-        if line.lower().startswith("title:"):
+        if line.lower().startswith("description:"):
+            in_description = True
+            continue
+        elif in_description:
+            description.append(line.strip())
+        elif line.lower().startswith("prompt:"):
+            in_description = False
+        elif line.lower().startswith("title:"):
             title = line.split(":", 1)[1].strip()
         elif line.lower().startswith("difficulty:"):
             difficulty = line.split(":", 1)[1].strip().lower()
-        elif line.lower().startswith("summary:"):
-            summary = line.split(":", 1)[1].strip()
 
-    print(f"✅ Gemini Result -> Title: {title}, Difficulty: {difficulty}, Summary: {summary}")
-    return title, difficulty, summary
+    description = "\n".join(description)
+    print(
+        f"✅ Gemini Result -> Title: {title}, Difficulty: {difficulty}, Description: {description}"
+    )
+    return title, difficulty, description
 
 
 # Extract imports for Python
@@ -90,6 +108,7 @@ def extract_top_level_imports(code):
 
     return list(packages)
 
+
 # Evaluates code against test cases
 def evaluate_solution(solution, tests, lang):
     if lang == "java":
@@ -100,11 +119,14 @@ def evaluate_solution(solution, tests, lang):
     result = runner.run(solution, tests)
     return "results" in result and result.get("success")
 
+
 # Process each problem
 # ✅ Set up Flask app with identical DB config
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(basedir, 'problems.db')}"
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    f"sqlite:///{os.path.join(basedir, 'problems.db')}"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
@@ -113,9 +135,9 @@ with app.app_context():
     n_seeded = 1
 
     # ========== PYTHON ==========
-    with open(PYTHON_PROBLEMS_FILENAME, 'r', encoding='utf-8') as f:
+    with open(PYTHON_PROBLEMS_FILENAME, "r", encoding="utf-8") as f:
         py_problems = [json.loads(line) for line in f]
-    with open(PYTHON_RESPONSES_FILENAME, 'r', encoding='utf-8') as f:
+    with open(PYTHON_RESPONSES_FILENAME, "r", encoding="utf-8") as f:
         py_responses = [json.loads(line) for line in f]
 
     for problem, response in zip(py_problems, py_responses):
@@ -135,17 +157,21 @@ with app.app_context():
 
         # Install Python packages
         try:
-            deps = list(set(
-                extract_top_level_imports(correct_code) +
-                extract_top_level_imports(test_code)
-            ))
+            deps = list(
+                set(
+                    extract_top_level_imports(correct_code)
+                    + extract_top_level_imports(test_code)
+                )
+            )
             ensure_packages_installed(deps)
         except Exception as e:
             print(f"Dependency error in problem {problem_id}: {e}")
             continue
 
         if not evaluate_solution(llm_code, test_code, "python"):
-            title, difficulty, summary = generate_title_difficulty_summary(description, llm_code)
+            title, difficulty, summary = generate_title_difficulty_summary(
+                description, llm_code
+            )
             p = Problem(
                 id=str(n_seeded),
                 title=title,
@@ -157,7 +183,7 @@ with app.app_context():
                 llm_prompt=prompt,
                 llm_code=llm_code,
                 test_code=test_code,
-                correct_code=correct_code
+                correct_code=correct_code,
             )
             db.session.merge(p)
             db.session.commit()
@@ -165,9 +191,9 @@ with app.app_context():
             n_seeded += 1
 
     # ========== JAVA ==========
-    with open(JAVA_PROBLEMS_FILENAME, 'r', encoding='utf-8') as f:
+    with open(JAVA_PROBLEMS_FILENAME, "r", encoding="utf-8") as f:
         java_problems = [json.loads(line) for line in f]
-    with open(JAVA_RESPONSES_FILENAME, 'r', encoding='utf-8') as f:
+    with open(JAVA_RESPONSES_FILENAME, "r", encoding="utf-8") as f:
         java_responses = [json.loads(line) for line in f]
 
     for problem, response in zip(java_problems, java_responses):
@@ -186,9 +212,11 @@ with app.app_context():
         llm_code = match.group(1).strip() if match else ""
 
         if not evaluate_solution(llm_code, test_code, "java"):
-            title, difficulty, description = generate_title_difficulty_summary(description, llm_code)
+            title, difficulty, description = generate_title_difficulty_summary(
+                description, llm_code
+            )
             p = Problem(
-                id=str(n_seeded ),
+                id=str(n_seeded),
                 title=title,
                 language="java",
                 required_packages=[],
@@ -198,7 +226,7 @@ with app.app_context():
                 llm_prompt=prompt,
                 llm_code=llm_code,
                 test_code=test_code,
-                correct_code=correct_code
+                correct_code=correct_code,
             )
             db.session.merge(p)
             db.session.commit()

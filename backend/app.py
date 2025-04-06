@@ -11,6 +11,7 @@ from java_sandbox import JavaSandboxRunner
 
 app = Flask(__name__)
 from flask_cors import CORS
+
 CORS(app)
 
 # Initialize sandbox runners
@@ -19,10 +20,13 @@ java_runner = JavaSandboxRunner()
 
 # Simple HTML form to test from browser
 import os
+
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(basedir, 'problems.db')}"
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    f"sqlite:///{os.path.join(basedir, 'problems.db')}"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-print("Using DB:", app.config['SQLALCHEMY_DATABASE_URI'])
+print("Using DB:", app.config["SQLALCHEMY_DATABASE_URI"])
 db.init_app(app)
 
 # ✅ HTML UI for testing (loads problem 1 by default)
@@ -114,6 +118,7 @@ form_template = """
 </html>
 """
 
+
 # ✅ Serve the HTML form at root
 @app.route("/", methods=["GET"])
 def home():
@@ -124,7 +129,10 @@ def home():
     problem = Problem.query.get(default_id)
 
     solution_code = problem.llm_code if problem else "def example():\n  pass"
-    return render_template_string(form_template, default_id=default_id, default_code=solution_code)
+    return render_template_string(
+        form_template, default_id=default_id, default_code=solution_code
+    )
+
 
 @app.route("/get_problem/<int:id>", methods=["GET"])
 def get_problem(id):
@@ -134,32 +142,36 @@ def get_problem(id):
         abort(404, description=f"Problem with ID {id} not found")
 
     return jsonify(
-      {
-          "id": problem.id,
-          "title": problem.title,
-          "language": problem.language,
-          "required_packages": problem.required_packages,
-          "statement": problem.description,
-          "difficulty": problem.difficulty,
-          "ai_generated_code": problem.llm_code,
-      })
+        {
+            "id": problem.id,
+            "title": problem.title,
+            "language": problem.language,
+            "required_packages": problem.required_packages,
+            "statement": problem.description,
+            "difficulty": problem.difficulty,
+            "ai_generated_code": problem.llm_code,
+        }
+    )
+
 
 @app.route("/list_problems")
 def list_problems():
     # List out all problems in the db
     problems = Problem.query.all()
-    return jsonify([
-        {
-            "id": p.id,
-            "title": p.title,
-            "category": p.category,
-            "difficulty": p.difficulty,
-            # optionally include more fields if you need them
-            # "language": p.language,
-            # "required_packages": p.required_packages,
-        }
-        for p in problems
-    ])
+    return jsonify(
+        [
+            {
+                "id": p.id,
+                "title": p.title,
+                "category": p.category,
+                "difficulty": p.difficulty,
+                # optionally include more fields if you need them
+                # "language": p.language,
+                # "required_packages": p.required_packages,
+            }
+            for p in problems
+        ]
+    )
 
 
 # ✅ Dynamic test runner route
@@ -172,18 +184,18 @@ def run(id: str):
     # TODO move this to get_test_code
     problem = Problem.query.get(id)
     if not problem:
-        return jsonify({
-            "success": False,
-            "error": f"No problem found with ID '{id}'"
-        }), 404
+        return (
+            jsonify({"success": False, "error": f"No problem found with ID '{id}'"}),
+            404,
+        )
 
     # Get the appropriate test code based on problem ID and language
     test_code = problem.test_code
     if not test_code:
-      return (
-          jsonify({"error": f"No test code found for problem {id} in {language}"}),
-          404,
-      )
+        return (
+            jsonify({"error": f"No test code found for problem {id} in {language}"}),
+            404,
+        )
 
     # Auto-install required packages
     if problem.required_packages:
@@ -200,10 +212,13 @@ def run(id: str):
     # Run the code
     result = runner.run(solution_code, test_code)
 
+    print(result["stderr"])
+
     if "results" in result:
         return jsonify(result), (200 if result.get("success") else 400)
 
     return jsonify({"error": result.get("error", "Unknown error")}), 400
+
 
 if __name__ == "__main__":
     with app.app_context():
