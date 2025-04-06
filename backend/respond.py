@@ -18,7 +18,7 @@ with open(f'data/problems/{FILENAME}', 'r', encoding='utf-8') as f:
 ai_outputs = []
 
 # Process and send prompts to Gemini
-model = genai.GenerativeModel("gemini-2.0-flash")
+model = genai.GenerativeModel("gemini-1.5-pro")
 
 for item in data[:30]:
     problem_id = item.get("_id")

@@ -1,9 +1,10 @@
 """
-Postprocessing of AI-generated responses.
-Evaluate AI-generated responses against corresponding test cases, and collect the ones that fail one or more tests.
-These responses and corresponding problems will be added to the DB.
+Postprocessing of AI-generated responses for Python and Java.
+Evaluates responses against test cases, and adds failing ones to the DB.
 """
 
+import os
+import re
 from flask import Flask
 from py_sandbox import PySandboxRunner, ensure_packages_installed
 from models import db, Problem
@@ -11,27 +12,71 @@ from app import app
 import os
 import json
 import ast
+import time
 
-PYTHON_PROBLEMS_FILENAME = 'backend/data/problems/ncb_python_en.jsonl'
-PYTHON_RESPONSES_FILENAME = 'backend/data/responses/ncb_python_responses.jsonl'
-JAVA_PROBLEMS_FILENAME = 'backend/data/problems/ncb_java_en.jsonl'
-JAVA_RESPONSES_FILENAME = 'backend/data/responses/ncb_java_responses.jsonl'
+from models import db, Problem
+from app import app
+from py_sandbox import PySandboxRunner, ensure_packages_installed
+from java_sandbox import JavaSandboxRunner
+import google.generativeai as genai
 
-# Read JSON file for Python problems
-with open(f'{PYTHON_PROBLEMS_FILENAME}', 'r', encoding='utf-8') as f:
-    problems = [json.loads(line) for line in f]
+# File paths
+PYTHON_PROBLEMS_FILENAME = 'data/problems/ncb_python_en.jsonl'
+PYTHON_RESPONSES_FILENAME = 'data/responses/ncb_python_responses.jsonl'
+JAVA_PROBLEMS_FILENAME = 'data/problems/ncb_java_en.jsonl'
+JAVA_RESPONSES_FILENAME = 'data/responses/ncb_java_responses.jsonl'
 
-# Read JSON file for Python responses
-with open(f'{PYTHON_RESPONSES_FILENAME}', 'r', encoding='utf-8') as f:
-    responses = [json.loads(line) for line in f]
+# Google API key
+genai.configure(api_key="AIzaSyCfHTrNkgzxlF3Ua3O3rWFe-RG6Os9evJ8")  # Replace with your actual Gemini API key
 
+# Utility to generate title and difficulty
+def generate_title_difficulty_summary(problem_description, llm_code=None):
+    prompt = f"""
+You are a helpful assistant for classifying programming problems.
+
+Given the following problem description and AI-generated solution, come up with:
+1. A short, descriptive title (less than 10 words)
+2. A difficulty estimate: "easy", "medium", or "hard"
+3. A readible description of the problem (user-friendly), still cover the technicals and explains all the important details. Format in a way leetcode does it, taking punctionation, readibility from new lines, and other readibility elements into consideration.
+
+Respond strictly in the format:
+Title: <your title>
+Difficulty: <your difficulty>
+Summary: <your summary>
+
+Problem Description:
+{problem_description}
+
+LLM Code (optional):
+{llm_code or ""}
+"""
+
+    model = genai.GenerativeModel("gemini-1.5-pro")
+    response = model.generate_content(prompt)
+
+    title = "Untitled"
+    difficulty = "easy"
+    summary = "No summary provided."
+    for line in response.text.splitlines():
+        if line.lower().startswith("title:"):
+            title = line.split(":", 1)[1].strip()
+        elif line.lower().startswith("difficulty:"):
+            difficulty = line.split(":", 1)[1].strip().lower()
+        elif line.lower().startswith("summary:"):
+            summary = line.split(":", 1)[1].strip()
+
+    print(f"✅ Gemini Result -> Title: {title}, Difficulty: {difficulty}, Summary: {summary}")
+    return title, difficulty, summary
+
+
+# Extract imports for Python
 def extract_top_level_imports(code):
     try:
         tree = ast.parse(code)
     except SyntaxError as e:
         print("⚠️ Failed to parse code due to syntax error:", e)
         return []
-    
+
     packages = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -43,14 +88,14 @@ def extract_top_level_imports(code):
 
     return list(packages)
 
-# Evaluate a given solution against a set of test cases
-# Return true/false, depending on result
+# Evaluates code against test cases
 def evaluate_solution(solution, tests, lang):
-    #TODO: branch conditionally for python/java
+    if lang == "java":
+        runner = JavaSandboxRunner()
+    else:
+        runner = PySandboxRunner()
 
-    runner = PySandboxRunner()
     result = runner.run(solution, tests)
-
     return "results" in result and result.get("success")
 
 # Process each problem
@@ -65,78 +110,100 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
+    n_seeded = 1
 
-    n_seeded = 0
+    # ========== PYTHON ==========
+    with open(PYTHON_PROBLEMS_FILENAME, 'r', encoding='utf-8') as f:
+        py_problems = [json.loads(line) for line in f]
+    with open(PYTHON_RESPONSES_FILENAME, 'r', encoding='utf-8') as f:
+        py_responses = [json.loads(line) for line in f]
 
-    # Evaluate each response
-    for problem, response in zip(problems, responses):
+    for problem, response in zip(py_problems, py_responses):
         problem_id = problem.get("_id")
         prompt = problem.get("prompt", "")
-        problem_description = problem.get("problem", "")
-        test_cases = problem.get("testcases", "")
-        solution_code_block = problem.get("reference_solution", "")
+        description = problem.get("problem", "")
+        test_code = problem.get("testcases", "")
+        reference_solution = problem.get("reference_solution", "")
         category = problem.get("classification", "")
+        llm_response = response.get("AI response", "")
 
-        llm_solution_block = response.get("AI response", "")
+        match = re.search(r"```python(.*?)```", reference_solution, re.DOTALL)
+        correct_code = match.group(1).strip() if match else ""
 
-        # Extract the Python code block from the solution (between ```python and ```)
-        import re
-        match = re.search(r"```python(.*?)```", solution_code_block, re.DOTALL)
-        solution_code = match.group(1).strip() if match else ""
+        match = re.search(r"```python(.*?)```", llm_response, re.DOTALL)
+        llm_code = match.group(1).strip() if match else ""
 
-        match = re.search(r"```python(.*?)```", llm_solution_block, re.DOTALL)
-        llm_solution_code = match.group(1).strip() if match else ""
-
-        # Ensure necessary dependencies for the solution and test cases are installed
+        # Install Python packages
         try:
-            sol_dependencies = extract_top_level_imports(solution_code)
-        except SyntaxError as e:
-            print(f"❌ Syntax error in solution_code for problem {problem_id}: {e}")
+            deps = list(set(
+                extract_top_level_imports(correct_code) +
+                extract_top_level_imports(test_code)
+            ))
+            ensure_packages_installed(deps)
+        except Exception as e:
+            print(f"Dependency error in problem {problem_id}: {e}")
             continue
 
-        try:
-            test_dependencies = extract_top_level_imports(test_cases)
-        except SyntaxError as e:
-            print(f"❌ Syntax error in test_code for problem {problem_id}: {e}")
-            continue
-
-        dependencies = list(set(sol_dependencies).union(test_dependencies))
-
-        print("Installing dependencies...")
-        ensure_packages_installed(dependencies)
-
-        # Evaluate LLM solution against test cases
-        tests_passed = evaluate_solution(llm_solution_code, test_cases, "Python")
-
-        if not tests_passed:
-            # If at least one test failed, use this problem -- add it to the DB
-            problem_id = n_seeded + 1 # Re-number IDs
+        if not evaluate_solution(llm_code, test_code, "python"):
+            title, difficulty, summery = generate_title_difficulty_summary(description, llm_code)
             p = Problem(
-                id=problem_id,
-                title="NULL",
-                language="Python",
-                required_packages=dependencies,
-                difficulty="Easy",
+                id=str(n_seeded),
+                title=title,
+                language="python",
+                required_packages=deps,
+                difficulty=difficulty,
                 category=category,
-                description=problem_description,
+                description=summery,
                 llm_prompt=prompt,
-                llm_code=llm_solution_code,
-                test_code=test_cases,
-                correct_code=solution_code
+                llm_code=llm_code,
+                test_code=test_code,
+                correct_code=correct_code
             )
-
-            # Overwrite if existing
-            existing = Problem.query.get(problem_id)
-            if existing:
-                db.session.delete(existing)
-                db.session.commit()
-
-            db.session.add(p)
+            db.session.merge(p)
             db.session.commit()
-            print(f"✅ Problem {problem_id} seeded.")
+            print(f"✅ Seeded Python problem {p.id}")
             n_seeded += 1
-            print("Using DB:", app.config['SQLALCHEMY_DATABASE_URI'])
 
-    problems = Problem.query.all()
-    print([{"id": p.id, "title": p.title} for p in problems])
-print(f"Seeded a total of {n_seeded} problems.")
+    # ========== JAVA ==========
+    n_seeded = 38
+    with open(JAVA_PROBLEMS_FILENAME, 'r', encoding='utf-8') as f:
+        java_problems = [json.loads(line) for line in f]
+    with open(JAVA_RESPONSES_FILENAME, 'r', encoding='utf-8') as f:
+        java_responses = [json.loads(line) for line in f]
+
+    for problem, response in zip(java_problems, java_responses):
+        problem_id = problem.get("_id")
+        prompt = problem.get("prompt", "")
+        description = problem.get("problem", "")
+        test_code = problem.get("testcases", "")
+        reference_solution = problem.get("reference_solution", "")
+        category = problem.get("classification", "")
+        llm_response = response.get("AI response", "")
+
+        match = re.search(r"```java(.*?)```", reference_solution, re.DOTALL)
+        correct_code = match.group(1).strip() if match else ""
+
+        match = re.search(r"```java(.*?)```", llm_response, re.DOTALL)
+        llm_code = match.group(1).strip() if match else ""
+
+        if not evaluate_solution(llm_code, test_code, "java"):
+            title, difficulty, description = generate_title_difficulty_summary(description, llm_code)
+            p = Problem(
+                id=str(n_seeded ),
+                title=title,
+                language="java",
+                required_packages=[],
+                difficulty=difficulty,
+                category=category,
+                description=description,
+                llm_prompt=prompt,
+                llm_code=llm_code,
+                test_code=test_code,
+                correct_code=correct_code
+            )
+            db.session.merge(p)
+            db.session.commit()
+            print(f"✅ Seeded Java problem {p.id}")
+            n_seeded += 1
+
+print(f"\n🎉 Seeding complete. Total problems added: {n_seeded}")
