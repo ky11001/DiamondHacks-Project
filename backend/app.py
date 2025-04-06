@@ -40,13 +40,10 @@ form_template = """
 
   <form id="codeForm">
     <label><strong>Problem ID:</strong></label><br>
-    <input type="text" id="problemId" value="101" /><br><br>
+    <input type="text" id="problemId" value="{{ default_id }}" /><br><br>
 
     <label><strong>Solution Code:</strong></label><br>
-    <textarea name="solution_code" rows="10">
-def add(a, b):
-    return a + b
-    </textarea><br><br>
+    <textarea name="solution_code" rows="30">{{ default_code }}</textarea><br><br>
 
     <button type="submit">Run Code</button>
   </form>
@@ -112,7 +109,12 @@ def add(a, b):
 # ✅ Serve the HTML form at root
 @app.route("/", methods=["GET"])
 def home():
-    return render_template_string(form_template)
+    # Load default problem (131)
+    default_id = "131"
+    problem = Problem.query.get(default_id)
+
+    solution_code = problem.llm_code if problem else "def example():\n  pass"
+    return render_template_string(form_template, default_id=default_id, default_code=solution_code)
 
 # ✅ Dynamic test runner route
 @app.route("/run/<id>", methods=["POST"])
