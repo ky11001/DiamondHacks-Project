@@ -50,28 +50,39 @@ form_template = """
 </html>
 """
 
+
 @app.route("/", methods=["GET"])
 def home():
     return render_template_string(form_template)
 
-@app.route("/run", methods=["POST"])
-def run():
+
+@app.route("/get_problem/<id>", methods=["GET"])
+def get_problem(id):
+    return jsonify(
+        {
+            "id": id,
+            "title": "First problem!!!!",
+            "statement": "Statement for problem " + id,
+            "difficulty": "Easy",
+            "ai_generated_code": "# your code here",
+        }
+    )
+
+
+@app.route("/run/<id>", methods=["POST"])
+def run(id: str):
     data = request.get_json()
-    solution_code = data.get("solution_code", "")
-    test_code = data.get("test_code", "")
+    # solution_code = data.get("solution_code", "")
+    return jsonify(
+        {
+            "results": [
+                {"id": 1, "result": True},
+                {"id": 2, "result": False},
+                {"id": 3, "result": True},
+            ]
+        }
+    )
 
-    result = sandbox_run_with_tests(solution_code, test_code)
 
-    if result.get("success"):
-        return jsonify({
-            "success" : True,
-            "output" : result.get("output", "")
-        })
-    else:
-        return jsonify({
-            "success" : False,
-            "error" : result.get("error", "Unknown error")
-        }), 400
-    
 if __name__ == "__main__":
     app.run(debug=True)

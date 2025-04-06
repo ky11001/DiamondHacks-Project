@@ -5,9 +5,11 @@ import { useState } from 'react';
 
 interface CodeEditorProps {
   onSubmit: (code: string) => void;
+  ai_generated_code: string;
+  isSubmitting: boolean;
 }
 
-export default function CodeEditor({ onSubmit }: CodeEditorProps) {
+export default function CodeEditor({ onSubmit, ai_generated_code, isSubmitting }: CodeEditorProps) {
   const [code, setCode] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("python");
 
@@ -37,9 +39,10 @@ export default function CodeEditor({ onSubmit }: CodeEditorProps) {
           <option value="java">Java</option>
         </select>
         <div className="space-x-2">
-          <button 
+          <button
             onClick={handleSubmit}
             className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+            disabled={isSubmitting}
           >
             Submit
           </button>
@@ -50,8 +53,10 @@ export default function CodeEditor({ onSubmit }: CodeEditorProps) {
           height="100%"
           language={selectedLanguage}
           value={code}
+          defaultValue={ai_generated_code}
           onChange={handleEditorChange}
           theme="vs-light"
+
           options={{
             minimap: { enabled: false },
             fontSize: 14,
