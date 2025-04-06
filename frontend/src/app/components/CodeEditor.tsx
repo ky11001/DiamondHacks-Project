@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 interface CodeEditorProps {
   onSubmit: (code: string) => void;
+  onCodeChange?: (code: string) => void;
   ai_generated_code: string;
   isSubmitting: boolean;
   language: string;
@@ -12,11 +13,13 @@ interface CodeEditorProps {
 
 export default function CodeEditor({
   onSubmit,
+  onCodeChange,
   ai_generated_code,
   isSubmitting,
   language,
 }: {
   onSubmit: (code: string) => void;
+  onCodeChange?: (code: string) => void;
   ai_generated_code: string;
   isSubmitting: boolean;
   language: string;
@@ -26,6 +29,7 @@ export default function CodeEditor({
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       setCode(value);
+      onCodeChange?.(value);
     }
   };
 

@@ -7,6 +7,7 @@ import Image from "next/image";
 import CodeEditor from "@/app/components/CodeEditor";
 import ProblemPanel from "@/app/components/ProblemPanel";
 import TestCases from "@/app/components/TestCases";
+import ChatBot from "@/app/components/ChatBot";
 import { useParams } from "next/navigation";
 
 type Difficulty = "easy" | "medium" | "hard";
@@ -36,6 +37,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [testCaseError, setTestCaseError] = useState<string | undefined>(undefined);
+  const [currentCode, setCurrentCode] = useState('');
   const params = useParams();
 
   const id = params?.id as string;
@@ -49,6 +51,7 @@ export default function Home() {
         data.difficulty = data.difficulty.toLowerCase();
         if (!isDifficulty(data.difficulty)) throw new Error('Invalid difficulty level from API');
         setProblemData(data);
+        setCurrentCode(data.ai_generated_code);
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : "An error occurred");
       } finally {
@@ -111,28 +114,35 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
       <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Column: ProblemPanel and TestCases */}
-        <div className="flex flex-col gap-4">
-          <ProblemPanel
-            id={problemData.id}
-            title={problemData.title}
-            difficulty={problemData.difficulty}
-            statement={problemData.statement}
-            language={problemData.language}
-          />
-          <TestCases cases={testCases} isSubmitting={isSubmitting} error={testCaseError} />
-        </div>
+       
 
-        {/* Right Column: CodeEditor */}
-        <div>
-          <CodeEditor
-            onSubmit={handleSubmit}
-            ai_generated_code={problemData.ai_generated_code}
-            isSubmitting={isSubmitting}
-            language={problemData.language}
-          />
+      {/* Main Content */}
+      <div className="flex-1 flex">
+        <div className="flex flex-col lg:flex-row w-full">
+          <div className="lg:w-1/2 lg:max-h-screen lg:overflow-auto">
+            <ProblemPanel
+              id={problemData.id}
+              title={problemData.title}
+              difficulty={problemData.difficulty}
+              statement={problemData.statement}
+              language={problemData.language}
+              testCases={<TestCases cases={testCases} isSubmitting={isSubmitting} error={testCaseError} />}
+            />
+          </div>
+          <div className="lg:w-1/2 h-screen">
+            <CodeEditor
+              onSubmit={handleSubmit}
+              onCodeChange={(code) => {
+                setCurrentCode(code);
+              }}
+              ai_generated_code={problemData.ai_generated_code}
+              isSubmitting={isSubmitting}
+              language={problemData.language}
+            />
+          </div>
         </div>
       </div>
+      <ChatBot currentCode={currentCode} />
     </div>
   );
 }
