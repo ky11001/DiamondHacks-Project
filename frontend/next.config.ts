@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
         source: "/chat",
         destination: "http://127.0.0.1:5000/chat",
       },
+      {
+        source: "/chat/reset",
+        destination: "http://127.0.0.1:5000/chat/reset",
+      },
     ];
   },
 };

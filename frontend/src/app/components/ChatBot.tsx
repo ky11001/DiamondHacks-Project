@@ -111,12 +111,30 @@ export default function ChatBot({ currentCode }: ChatBotProps) {
               <FaRobot />
               <span>AI Assistant</span>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:text-gray-200 transition-colors"
-            >
-              <FaTimes />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    await fetch('/chat/reset', { method: 'POST' });
+                    setMessages([{
+                      text: "Chat history has been reset. How can I help you with your code?",
+                      isBot: true
+                    }]);
+                  } catch (error) {
+                    console.error('Error resetting chat:', error);
+                  }
+                }}
+                className="text-white hover:text-gray-200 transition-colors px-3 py-1 rounded border border-white/30 text-sm mr-2"
+              >
+                Reset Chat
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:text-gray-200 transition-colors"
+              >
+                <FaTimes />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}

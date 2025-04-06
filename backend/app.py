@@ -17,7 +17,21 @@ load_dotenv()
 
 # Configure Gemini API
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-1.5-pro")
+
+# Dictionary to store chat sessions
+chat_models = {}
+
+
+def get_or_create_chat_model():
+    # Use a simple counter as the model ID
+    model_id = len(chat_models)
+    if model_id not in chat_models:
+        chat_models[model_id] = genai.GenerativeModel("gemini-1.5-pro")
+    return chat_models[model_id]
+
+
+# Initialize default model
+model = get_or_create_chat_model()
 
 app = Flask(__name__)
 
@@ -224,6 +238,13 @@ def run(id: str):
         return jsonify(result), (200 if result.get("success") else 400)
 
     return jsonify({"error": result.get("error", "Unknown error")}), 400
+
+
+@app.route("/chat/reset", methods=["POST"])
+def reset_chat():
+    # Clear the chat models dictionary to reset all conversations
+    chat_models.clear()
+    return jsonify({"message": "Chat history reset successfully"})
 
 
 @app.route("/chat", methods=["POST"])
