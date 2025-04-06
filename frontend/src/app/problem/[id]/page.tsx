@@ -46,14 +46,14 @@ export default function Home() {
     const fetchProblemData = async () => {
       try {
         const response = await fetch(`/get_problem/${id}`);
-        if (!response.ok) throw new Error('Failed to fetch problem data');
+        if (!response.ok) throw new Error("Failed to fetch problem data");
         const data = await response.json();
         data.difficulty = data.difficulty.toLowerCase();
         if (!isDifficulty(data.difficulty)) throw new Error('Invalid difficulty level from API');
         setProblemData(data);
         setCurrentCode(data.ai_generated_code);
       } catch (err) {
-        setLoadError(err instanceof Error ? err.message : 'An error occurred');
+        setLoadError(err instanceof Error ? err.message : "An error occurred");
       } finally {
         setIsLoading(false);
       }
@@ -65,54 +65,56 @@ export default function Home() {
     setIsSubmitting(true);
     try {
       const response = await fetch(`/run/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ solution_code: code, language: problemData?.language })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ solution_code: code, language: problemData?.language }),
       });
 
       const data = await response.json();
       if (!data.results || data.error) {
-        setTestCaseError(data.error || 'No test results received');
+        setTestCaseError(data.error || "No test results received");
+        return;
       } else {
         setTestCaseError(undefined);
-        setTestCases(data.results.map((result: any) => ({
-          id: result.name,
-          result: result.outcome === 'passed',
-          message: result.message
-        })));
+        setTestCases(
+          data.results.map((result: any) => ({
+            id: result.name,
+            result: result.outcome === "passed",
+            message: result.message,
+          }))
+        );
       }
-
     } catch (error) {
-      console.error('Error submitting code:', error);
+      console.error("Error submitting code:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
+  };
 
-  // 🔽 Rendering Logic (MOVED OUT of handleSubmit)
+  // Render loading state
   if (isLoading) {
-    return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center">Loading...</div>;
-  }
-
-  if (loadError || !problemData) {
-    return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center text-red-600">{loadError || 'Problem not found'}</div>;
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 text-gray-950 flex flex-col">
-      {/* Top Bar */}
-      <div className="bg-white shadow-sm py-2 px-4 flex justify-center items-center">
-        <Link href="/" className="inline-block">
-          <Image
-            src="/vibecheckLogo.png"
-            alt="Vibecheck Logo"
-            width={120}
-            height={60}
-            className="w-auto h-8"
-            priority
-          />
-        </Link>
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center">
+        Loading...
       </div>
+    );
+  }
+
+  // Render error state
+  if (loadError || !problemData) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center text-red-600">
+        {loadError || "Problem not found"}
+      </div>
+    );
+  }
+
+  // Render the main content
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
+      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
+       
 
       {/* Main Content */}
       <div className="flex-1 flex">
