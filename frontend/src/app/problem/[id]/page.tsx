@@ -7,9 +7,9 @@ import Image from "next/image";
 import CodeEditor from "@/app/components/CodeEditor";
 import ProblemPanel from "@/app/components/ProblemPanel";
 import TestCases from "@/app/components/TestCases";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
-type Difficulty = "Easy" | "Medium" | "Hard";
+type Difficulty = "easy" | "medium" | "hard";
 
 interface ProblemData {
   id: string;
@@ -27,7 +27,7 @@ interface TestCase {
 }
 
 function isDifficulty(value: string): value is Difficulty {
-  return ["Easy", "Medium", "Hard"].includes(value);
+  return ["easy", "medium", "hard"].includes(value.toLowerCase());
 }
 export default function Home() {
   const [testCases, setTestCases] = useState<TestCase[]>([]);
@@ -46,6 +46,7 @@ export default function Home() {
         const response = await fetch(`/get_problem/${id}`);
         if (!response.ok) throw new Error('Failed to fetch problem data');
         const data = await response.json();
+        data.difficulty = data.difficulty.toLowerCase();
         if (!isDifficulty(data.difficulty)) throw new Error('Invalid difficulty level from API');
         setProblemData(data);
       } catch (err) {

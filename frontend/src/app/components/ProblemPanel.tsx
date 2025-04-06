@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 interface ProblemPanelProps {
   id: string;
   title: string;
-  difficulty: "Easy" | "Medium" | "Hard";
+  difficulty: "easy" | "medium" | "hard";
   statement: string;
   language: string;
   testCases: React.ReactNode;
@@ -12,9 +12,9 @@ interface ProblemPanelProps {
 
 const ProblemPanel: React.FC<ProblemPanelProps> = ({ id, title, difficulty, statement, language, testCases }) => {
   const difficultyColors = {
-    Easy: "bg-green-100 text-green-800",
-    Medium: "bg-yellow-100 text-yellow-800",
-    Hard: "bg-red-100 text-red-800",
+    easy: "bg-green-100 text-green-800",
+    medium: "bg-yellow-100 text-yellow-800",
+    hard: "bg-red-100 text-red-800",
   };
 
   return (
