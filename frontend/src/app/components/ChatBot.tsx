@@ -1,19 +1,33 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { FaRobot, FaTimes, FaPaperPlane } from 'react-icons/fa';
 
 interface Message {
   text: string;
   isBot: boolean;
+  isCode?: boolean;
 }
 
-export default function ChatBot() {
+interface ChatBotProps {
+  currentCode: string;
+}
+
+export default function ChatBot({ currentCode }: ChatBotProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
   const [messages, setMessages] = useState<Message[]>([
     { text: "Hi! I'm here to help you with your coding problems. How can I assist you today?", isBot: true }
   ]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,18 +38,41 @@ export default function ChatBot() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
 
-    // TODO: Implement actual API call here
-    // For now, just echo back a response
-    setTimeout(() => {
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: input,
+          code: currentCode
+        })
+      });
+
+      setIsLoading(false);
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
       setMessages(prev => [...prev, {
-        text: "I understand your question. This is a placeholder response - actual AI integration coming soon!",
+        text: data.response,
+        isBot: true,
+        isCode: data.isCode || false
+      }]);
+    } catch (error) {
+      console.error('Error:', error);
+      setMessages(prev => [...prev, {
+        text: 'Sorry, there was an error processing your request.',
         isBot: true
       }]);
-    }, 1000);
+    }
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className={`fixed bottom-4 ${windowWidth <= 800 ? 'inset-x-4' : 'right-4'} z-50`}>
       {/* Chat Button */}
       <button
         onClick={() => setIsOpen(prev => !prev)}
@@ -47,7 +84,27 @@ export default function ChatBot() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-96 h-[500px] bg-white rounded-lg shadow-xl flex flex-col">
+        <div
+          className={`absolute bottom-16 ${windowWidth <= 800 ? 'inset-x-0' : 'right-0 w-[800px]'} h-[500px] bg-white rounded-lg shadow-xl flex flex-col`}
+        >
+          <style jsx global>{`
+            .chat-message pre {
+              background: #f0f0f0;
+              padding: 0.5rem;
+              border-radius: 4px;
+              overflow-x: auto;
+              margin: 0.5rem 0;
+            }
+            .chat-message code {
+              background: #f0f0f0;
+              padding: 0.2rem 0.4rem;
+              border-radius: 3px;
+              font-size: 0.9em;
+            }
+            .chat-message p {
+              margin: 0.5rem 0;
+            }
+          `}</style>
           {/* Header */}
           <div className="p-4 bg-purple-600 text-white rounded-t-lg flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -70,16 +127,22 @@ export default function ChatBot() {
                 className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}
               >
                 <div
-                  className={`max-w-[80%] p-3 rounded-lg ${
-                    message.isBot
-                      ? 'bg-gray-100 text-gray-800'
-                      : 'bg-purple-600 text-white'
-                  }`}
+                  className={`chat-message max-w-[90%] p-3 rounded-lg whitespace-pre-wrap ${message.isBot
+                    ? 'bg-gray-100 text-gray-800'
+                    : 'bg-purple-600 text-white'
+                    }`}
                 >
-                  {message.text}
+                  <ReactMarkdown>
+                    {message.text}
+                  </ReactMarkdown>
                 </div>
               </div>
             ))}
+            {isLoading && (
+              <div className="flex justify-center">
+                <div className="spinner-border animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
+              </div>
+            )}
           </div>
 
           {/* Input */}

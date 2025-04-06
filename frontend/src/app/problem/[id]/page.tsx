@@ -7,8 +7,8 @@ import Image from "next/image";
 import CodeEditor from "@/app/components/CodeEditor";
 import ProblemPanel from "@/app/components/ProblemPanel";
 import TestCases from "@/app/components/TestCases";
-import { useParams } from "next/navigation";
 import ChatBot from "@/app/components/ChatBot";
+import { useParams } from "next/navigation";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -37,6 +37,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [testCaseError, setTestCaseError] = useState<string | undefined>(undefined);
+  const [currentCode, setCurrentCode] = useState('');
   const params = useParams();
 
   const id = params?.id as string;
@@ -50,6 +51,7 @@ export default function Home() {
         data.difficulty = data.difficulty.toLowerCase();
         if (!isDifficulty(data.difficulty)) throw new Error('Invalid difficulty level from API');
         setProblemData(data);
+        setCurrentCode(data.ai_generated_code);
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -128,6 +130,9 @@ export default function Home() {
           <div className="lg:w-1/2 h-screen">
             <CodeEditor
               onSubmit={handleSubmit}
+              onCodeChange={(code) => {
+                setCurrentCode(code);
+              }}
               ai_generated_code={problemData.ai_generated_code}
               isSubmitting={isSubmitting}
               language={problemData.language}
@@ -135,7 +140,7 @@ export default function Home() {
           </div>
         </div>
       </div>
-      <ChatBot />
+      <ChatBot currentCode={currentCode} />
     </div>
   );
 }

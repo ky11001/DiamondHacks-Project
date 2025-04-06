@@ -8,6 +8,16 @@ from flask import Flask, request, jsonify, render_template_string, abort
 from py_sandbox import PySandboxRunner, ensure_packages_installed
 from java_sandbox import JavaSandboxRunner
 from flask_cors import CORS
+import google.generativeai as genai
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Configure Gemini API
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-1.5-pro")
 
 app = Flask(__name__)
 
@@ -18,8 +28,6 @@ py_runner = PySandboxRunner()
 java_runner = JavaSandboxRunner()
 
 # Simple HTML form to test from browser
-import os
-
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config["SQLALCHEMY_DATABASE_URI"] = (
     f"sqlite:///{os.path.join(basedir, 'problems.db')}"
@@ -216,6 +224,43 @@ def run(id: str):
         return jsonify(result), (200 if result.get("success") else 400)
 
     return jsonify({"error": result.get("error", "Unknown error")}), 400
+
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json()
+    user_prompt = data.get("prompt", "")
+    current_code = data.get("code", "")
+
+    if not user_prompt:
+        return jsonify({"error": "No prompt provided"}), 400
+
+    try:
+        # Construct a prompt that will help Gemini understand the context
+        system_prompt = """
+        You are an expert coding assistant. Given the current code and the user's question,
+        provide helpful code suggestions and improvements. Focus on:
+        1. Direct answers to the user's questions
+        2. Code improvements and best practices
+        3. Potential bugs or issues
+        4. Performance optimizations
+        Format code blocks with appropriate indentation.
+
+        Respond in second person, as if you are responding to the user.
+        """
+
+        full_prompt = f"{system_prompt}\n\nCurrent code:\n```\n{current_code}\n```\n\nUser question: {user_prompt}"
+
+        # Generate response using Gemini
+        response = model.generate_content(full_prompt)
+
+        # Check if the response contains code
+        has_code = "```" in response.text
+
+        return jsonify({"response": response.text, "isCode": has_code})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # Initialize
