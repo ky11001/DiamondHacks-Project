@@ -25,7 +25,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 print("Using DB:", app.config['SQLALCHEMY_DATABASE_URI'])
 db.init_app(app)
 
-# ✅ HTML UI for testing (loads problem 100 by default)
+# ✅ HTML UI for testing (loads problem 1 by default)
 form_template = """
 <!DOCTYPE html>
 <html>
@@ -126,10 +126,9 @@ def home():
     solution_code = problem.llm_code if problem else "def example():\n  pass"
     return render_template_string(form_template, default_id=default_id, default_code=solution_code)
 
-
 @app.route("/get_problem/<int:id>", methods=["GET"])
 def get_problem(id):
-    # TODO: fetch problem data from database
+    # Fetch problem from database
     problem = Problem.query.get(id)
     if not problem:
         abort(404, description=f"Problem with ID {id} not found")
@@ -147,6 +146,7 @@ def get_problem(id):
 
 @app.route("/list_problems")
 def list_problems():
+    # List out all problems in the db
     problems = Problem.query.all()
     return jsonify([
         {
