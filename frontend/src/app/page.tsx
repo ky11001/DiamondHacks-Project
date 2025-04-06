@@ -1,60 +1,130 @@
-import React from "react";
-import CodeEditor from './components/CodeEditor';
-import ProblemPanel from "./components/ProblemPanel";
-import TestCases from "./components/TestCases";
+"use client";
+import React, { useState } from "react";
+import Link from "next/link";
+import Header from "./components/Header";
+import { FaSort } from "react-icons/fa";
 
 export default function Home() {
-  // async function fetchProblemData() {
-  //   const response = await fetch('/api/problem'); // Replace with your backend API endpoint
-  //   const data = await response.json();
-  //   return {
-  //     title: data.title,
-  //     difficulty: data.difficulty,
-  //     statement: data.statement,
-  //   };
-  // }
+  // Static data for now
+  const [problems, setProblems] = useState([
+    { id: "1", title: "Two Sum", category: "DSA", difficulty: "Easy" },
+    { id: "2", title: "Reverse Integer", category: "Math", difficulty: "Medium" },
+    { id: "3", title: "Palindrome Number", category: "DSA", difficulty: "Easy" },
+  ]);
 
-  // Static variables for now
-  const title = "1. Two Sum";
-  const difficulty = "Easy";
-  const statement = `Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
-  You may assume that each input would have exactly one solution, and you may not use the same element twice.
+  // State to track the completion status of problems
+  const [status, setStatus] = useState<{ [key: string]: boolean }>({});
 
-  Example 1:
-  Input: nums = [2,7,11,15], target = 9
-  Output: [0,1]
-  Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].`;
+  // State to track sorting
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
-  const testCases = [
-    {
-      input: "Input: nums = [2,7,11,15], target = 9",
-      expected: "[0,1]"
-    },
-    {
-      input: "Input: nums = [3,2,4], target = 6",
-      expected: "[1,2]"
+  // Handle checkbox toggle
+  const handleStatusChange = (id: string) => {
+    setStatus((prevStatus) => ({
+      ...prevStatus,
+      [id]: !prevStatus[id],
+    }));
+  };
+
+  // Handle sorting
+  const handleSort = (key: string) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
     }
-  ];
+    setSortConfig({ key, direction });
+
+    const sortedProblems = [...problems].sort((a, b) => {
+      if (key === "status") {
+        const statusA = status[a.id] || false;
+        const statusB = status[b.id] || false;
+        return direction === "asc" ? Number(statusA) - Number(statusB) : Number(statusB) - Number(statusA);
+      }
+      if (a[key as keyof typeof a] < b[key as keyof typeof b]) {
+        return direction === "asc" ? -1 : 1;
+      }
+      if (a[key as keyof typeof a] > b[key as keyof typeof b]) {
+        return direction === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
+    setProblems(sortedProblems);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Column: ProblemPanel and TestCases */}
-        <div className="flex flex-col gap-4">
-          <ProblemPanel
-            title={title}
-            difficulty={difficulty}
-            statement={statement}
-          />
-          <TestCases cases={testCases} />
-        </div>
-
-        {/* Right Column: CodeEditor */}
-        <div>
-          <CodeEditor />
-
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex flex-col items-center">
+        <h1 className="text-4xl font-bold mb-6">Problems</h1>
+        <div className="overflow-x-auto w-full max-w-5xl">
+          <table className="table-auto w-full">
+            <thead className="bg-gray-100 border-b-2 border-gray-400">
+              <tr>
+                <th className="px-4 py-2 text-left w-28">
+                  <button
+                    onClick={() => handleSort("status")}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <span>Status</span>
+                    <FaSort className="text-gray-600 opacity-50" />
+                  </button>
+                </th>
+                <th className="px-4 py-2 text-left">
+                  <button
+                    onClick={() => handleSort("id")}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <span>Problem</span>
+                    <FaSort className="text-gray-600 opacity-50" />
+                  </button>
+                </th>
+                <th className="px-4 py-2 text-left">
+                  <button
+                    onClick={() => handleSort("category")}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <span>Category</span>
+                    <FaSort className="text-gray-600 opacity-50" />
+                  </button>
+                </th>
+                <th className="px-4 py-2 text-left">
+                  <button
+                    onClick={() => handleSort("difficulty")}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <span>Difficulty</span>
+                    <FaSort className="text-gray-600 opacity-50" />
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {problems.map((problem) => (
+                <tr key={problem.id} className="hover:bg-gray-50 border-b border-gray-300">
+                  <td className="px-4 py-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={status[problem.id] || false}
+                      onChange={() => handleStatusChange(problem.id)}
+                      className="cursor-pointer w-4 h-4"
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Link
+                      href={`/problem/${problem.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {problem.id}. {problem.title}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2">{problem.category}</td>
+                  <td className="px-4 py-2">{problem.difficulty}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
+    </>
   );
 }
