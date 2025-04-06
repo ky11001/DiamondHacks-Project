@@ -9,6 +9,14 @@ import sys
 import json
 import subprocess
 
+def ensure_packages_installed(packages):
+    for pkg in packages:
+        try:
+            __import__(pkg)
+        except ImportError:
+            print(f"📦 Installing {pkg}...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
+
 
 def _run_pytest_in_subprocess(tmpdir, solution_code, test_code, return_dict):
     test_path = os.path.join(tmpdir, "test_solution.py")

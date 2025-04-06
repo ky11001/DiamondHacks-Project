@@ -5,7 +5,7 @@ from models import db, Problem
 from flask_sqlalchemy import SQLAlchemy
 
 from flask import Flask, request, jsonify, render_template_string
-from sandbox import SandboxRunner
+from sandbox import SandboxRunner, ensure_packages_installed
 
 app = Flask(__name__)
 
@@ -40,7 +40,7 @@ form_template = """
 
   <form id="codeForm">
     <label><strong>Problem ID:</strong></label><br>
-    <input type="text" id="problemId" value="100" /><br><br>
+    <input type="text" id="problemId" value="101" /><br><br>
 
     <label><strong>Solution Code:</strong></label><br>
     <textarea name="solution_code" rows="10">
@@ -128,6 +128,10 @@ def run(id: str):
         }), 404
 
     test_code = problem.test_code
+    
+    # Auto-install required packages
+    if problem.required_packages:
+        ensure_packages_installed(problem.required_packages)
 
     runner = SandboxRunner()
     result = runner.run(solution_code, test_code)
