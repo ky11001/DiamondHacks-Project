@@ -90,7 +90,6 @@ export default function Home() {
       setIsSubmitting(false);
     }
   };
-  };
 
   // Render loading state
   if (isLoading) {
@@ -113,8 +112,20 @@ export default function Home() {
   // Render the main content
   return (
     <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
-       
+
+      {/* Top Bar */}
+      <div className="bg-white shadow-sm py-2 px-4 flex justify-center items-center">
+        <Link href="/" className="inline-block">
+          <Image
+            src="/vibecheckLogo.png"
+            alt="Vibecheck Logo"
+            width={120}
+            height={60}
+            className="w-auto h-8"
+            priority
+          />
+        </Link>
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex">
@@ -132,17 +143,15 @@ export default function Home() {
           <div className="lg:w-1/2 h-screen">
             <CodeEditor
               onSubmit={handleSubmit}
-              onCodeChange={(code) => {
-                setCurrentCode(code);
-              }}
+              onCodeChange={(code) => setCurrentCode(code)}
               ai_generated_code={problemData.ai_generated_code}
               isSubmitting={isSubmitting}
               language={problemData.language}
             />
           </div>
+          <ChatBot currentCode={currentCode} />
         </div>
       </div>
-      <ChatBot currentCode={currentCode} />
     </div>
   );
 }
