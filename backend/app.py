@@ -1,37 +1,21 @@
 import multiprocessing
 multiprocessing.set_start_method("fork", force=True)
 
+from models import db, Problem
+from flask_sqlalchemy import SQLAlchemy
+
 from flask import Flask, request, jsonify, render_template_string
 from sandbox import SandboxRunner
 
 app = Flask(__name__)
 
-# ✅ Simulated problem database
-PROBLEM_DB = {
-    "100": {
-        "name": "Add Two Numbers",
-        "test_code": """
-import pytest
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///problems.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db.init_app(app)
 
-class TestAdd:
-    def test_add(self):
-        assert add(2, 3) == 5
-
-    def test_fail(self):
-        assert add(2, 2) == 5  # This should fail
-"""
-    },
-    "101": {
-        "name": "Multiply Two Numbers",
-        "test_code": """
-import pytest
-
-class TestMultiply:
-    def test_mul(self):
-        assert multiply(3, 4) == 12
-"""
-    }
-}
+@app.before_request
+def create_tables():
+    db.create_all()
 
 # ✅ HTML UI for testing (loads problem 100 by default)
 form_template = """
@@ -136,14 +120,14 @@ def run(id: str):
     data = request.get_json()
     solution_code = data.get("solution_code", "")
 
-    problem = PROBLEM_DB.get(id)
+    problem = Problem.query.get(id)
     if not problem:
         return jsonify({
             "success": False,
             "error": f"No problem found with ID '{id}'"
         }), 404
 
-    test_code = problem["test_code"]
+    test_code = problem.test_code
 
     runner = SandboxRunner()
     result = runner.run(solution_code, test_code)
