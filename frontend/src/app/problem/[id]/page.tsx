@@ -1,73 +1,107 @@
-import React from "react";
-import { useRouter } from "next/router";
-import Header from "../../components/Header";
-import CodeEditor from "../../components/CodeEditor";
-import ProblemPanel from "../../components/ProblemPanel";
-import TestCases from "../../components/TestCases";
+"use client";
 
-export default async function ProblemPage({ params }: { params: { id: string } }) {
-  //const problemId = params.id;
-  const { id } = params;
+import React, { useState, useEffect } from "react";
 
-//   // Fetch problem data from the backend
-//   const response = await fetch(`https://your-backend-api.com/problems/${problemId}`);
-//   const problem = await response.json();
+import CodeEditor from "@/app/components/CodeEditor";
+import ProblemPanel from "@/app/components/ProblemPanel";
+import TestCases from "@/app/components/TestCases";
 
-  //const { title, difficulty, statement, testCases } = problem;
-    // async function fetchProblemData() {
-  //   const response = await fetch('/api/problem'); // Replace with your backend API endpoint
-  //   const data = await response.json();
-  //   return {
-  //     title: data.title,
-  //     difficulty: data.difficulty,
-  //     statement: data.statement,
-  //   };
-  // }
+type Difficulty = "Easy" | "Medium" | "Hard";
 
-  // Static variables for now
-  const title = "1. Two Sum"
-  const difficulty = "Easy";
-  const statement = `Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
-  You may assume that each input would have exactly one solution, and you may not use the same element twice.
+interface ProblemData {
+  id: string;
+  title: string;
+  statement: string;
+  difficulty: Difficulty;
+  ai_generated_code: string;
+}
 
-  Example 1:
-  Input: nums = [2,7,11,15], target = 9
-  Output: [0,1]
-  Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].`;
+function isDifficulty(value: string): value is Difficulty {
+  return ["Easy", "Medium", "Hard"].includes(value);
+}
 
-  const testCases = [
-    {
-      input: "Input: nums = [2,7,11,15], target = 9",
-      expected: "[0,1]"
-    },
-    {
-      input: "Input: nums = [3,2,4], target = 6",
-      expected: "[1,2]"
+export default function Home() {
+  const [testCases, setTestCases] = useState<Array<{ id: number; result: boolean }>>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [problemData, setProblemData] = useState<ProblemData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const id = "1"; // This could come from route params in a real app
+
+  useEffect(() => {
+    const fetchProblemData = async () => {
+      try {
+        const response = await fetch(`/get_problem/${id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch problem data');
+        }
+        const data = await response.json();
+        if (!isDifficulty(data.difficulty)) {
+          throw new Error('Invalid difficulty level received from API');
+        }
+        setProblemData(data as ProblemData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProblemData();
+  }, [id]);
+
+  const handleSubmit = async (code: string) => {
+    setIsSubmitting(true);
+    try {
+      // This would be replaced with an actual API call
+      // TODO replace "1" with the actual id that is passed into the component
+      const response = await fetch(`/run/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ solution_code: code })
+      });
+      const data = await response.json();
+
+      setTestCases(data.results);
+    } catch (error) {
+      console.error('Error submitting code:', error);
+    } finally {
+      setIsSubmitting(false);
     }
-  ];
-  return (
-    <>
-      <Header />
-      <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {//<>ID: {id}</>
-          }
-          {/* Left Column: ProblemPanel and TestCases */}
-          <div className="flex flex-col gap-4">
-            <ProblemPanel
-              title={title}
-              difficulty={difficulty}
-              statement={statement}
-            />
-            <TestCases cases={testCases} />
-          </div>
+  };
 
-          {/* Right Column: CodeEditor */}
-          <div>
-            <CodeEditor />
-          </div>
+  if (isLoading) {
+    return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center">Loading...</div>;
+  }
+
+  if (error || !problemData) {
+    return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center text-red-600">{error || 'Problem not found'}</div>;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
+      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left Column: ProblemPanel and TestCases */}
+        <div className="flex flex-col gap-4">
+          <ProblemPanel
+            id={problemData.id}
+            title={problemData.title}
+            difficulty={problemData.difficulty}
+            statement={problemData.statement}
+          />
+          <TestCases cases={testCases} isSubmitting={isSubmitting} />
+        </div>
+
+        {/* Right Column: CodeEditor */}
+        <div>
+          <CodeEditor
+            onSubmit={handleSubmit}
+            ai_generated_code={problemData.ai_generated_code}
+            isSubmitting={isSubmitting}
+          />
         </div>
       </div>
-    </>
+    </div>
   );
 }
