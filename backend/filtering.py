@@ -5,6 +5,11 @@ Evaluates responses against test cases, and adds failing ones to the DB.
 
 import os
 import re
+from flask import Flask
+from py_sandbox import PySandboxRunner, ensure_packages_installed
+from models import db, Problem
+from app import app
+import os
 import json
 import ast
 import time
@@ -93,7 +98,16 @@ def evaluate_solution(solution, tests, lang):
     result = runner.run(solution, tests)
     return "results" in result and result.get("success")
 
-# Process problems
+# Process each problem
+# TODO: include java functionality
+
+# ✅ Set up Flask app with identical DB config
+app = Flask(__name__)
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(basedir, 'problems.db')}"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db.init_app(app)
+
 with app.app_context():
     db.create_all()
     n_seeded = 1
