@@ -20,5 +20,6 @@ for item in data:
     solution_code = match.group(1).strip() if match else ""
 
     print(f"Problem ID : {problem_id}")
-    print(f"Description: {problem_description[:60]}...")
-    print(f"Solution:\n{solution_code[:60]}...\n")
+    print(f"Test cases: {test_cases}")
+    # print(f"Description: {problem_description[:60]}...")
+    # print(f"Solution:\n{solution_code[:60]}...\n")
