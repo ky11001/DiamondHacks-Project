@@ -51,6 +51,15 @@ export default function Home() {
         const statusB = status[b.id] || false;
         return direction === "asc" ? Number(statusA) - Number(statusB) : Number(statusB) - Number(statusA);
       }
+
+      // Handle numeric sorting for "id"
+      if (key === "id") {
+        const idA = parseInt(a.id, 10);
+        const idB = parseInt(b.id, 10);
+        return direction === "asc" ? idA - idB : idB - idA;
+      }
+
+      // Handle other fields (alphabetical sorting)
       if (a[key as keyof Problem] < b[key as keyof Problem]) {
         return direction === "asc" ? -1 : 1;
       }
@@ -59,6 +68,7 @@ export default function Home() {
       }
       return 0;
     });
+
     setProblems(sortedProblems);
   };
 
