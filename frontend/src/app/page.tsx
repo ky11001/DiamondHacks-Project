@@ -1,126 +1,137 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import CodeEditor from './components/CodeEditor';
-import ProblemPanel from "./components/ProblemPanel";
-import TestCases from "./components/TestCases";
+import Link from "next/link";
+import Header from "./components/Header";
+import { FaSort } from "react-icons/fa";
 
 type Difficulty = "Easy" | "Medium" | "Hard";
-
-interface ProblemData {
-  id: string;
-  title: string;
-  statement: string;
-  difficulty: Difficulty;
-  ai_generated_code: string;
-  language: string;
-}
-
-interface TestCase {
-  id: number;
-  result: boolean;
-  message: string;
-}
 
 function isDifficulty(value: string): value is Difficulty {
   return ["Easy", "Medium", "Hard"].includes(value);
 }
 
 export default function Home() {
-  const [testCases, setTestCases] = useState<TestCase[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [problemData, setProblemData] = useState<ProblemData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [testCaseError, setTestCaseError] = useState<string | undefined>(undefined);
+  // Static data for now
+  const [problems, setProblems] = useState([
+    { id: "1", title: "Two Sum", category: "DSA", difficulty: "Easy" },
+    { id: "2", title: "Reverse Integer", category: "Math", difficulty: "Medium" },
+    { id: "3", title: "Palindrome Number", category: "DSA", difficulty: "Easy" },
+  ]);
 
-  const id = "1"; // This could come from route params in a real app
+  // State to track the completion status of problems
+  const [status, setStatus] = useState<{ [key: string]: boolean }>({});
 
-  useEffect(() => {
-    const fetchProblemData = async () => {
-      try {
-        const response = await fetch(`/get_problem/${id}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch problem data');
-        }
-        const data = await response.json();
-        if (!isDifficulty(data.difficulty)) {
-          throw new Error('Invalid difficulty level received from API');
-        }
-        setProblemData(data as ProblemData);
-      } catch (err) {
-        setLoadError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // State to track sorting
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
-    fetchProblemData();
-  }, [id]);
-
-  const handleSubmit = async (code: string) => {
-    setIsSubmitting(true);
-    try {
-      // This would be replaced with an actual API call
-      // TODO replace "1" with the actual id that is passed into the component
-      const response = await fetch(`/run/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ solution_code: code, language: problemData?.language })
-      });
-      const data = await response.json();
-      if (!data.results || data.error) {
-        setTestCaseError(data.error || 'No test results received');
-        return;
-      } else {
-        setTestCaseError(undefined);
-        setTestCases(data.results.map((result: any) => ({
-          id: result.name,
-          result: result.outcome === 'passed',
-          message: result.message
-        })));
-      }
-
-    } catch (error) {
-      console.error('Error submitting code:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+  // Handle checkbox toggle
+  const handleStatusChange = (id: string) => {
+    setStatus((prevStatus) => ({
+      ...prevStatus,
+      [id]: !prevStatus[id],
+    }));
   };
 
-  if (isLoading) {
-    return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center">Loading...</div>;
-  }
+  // Handle sorting
+  const handleSort = (key: string) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
 
-  if (loadError || !problemData) {
-    return <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex items-center justify-center text-red-600">{loadError || 'Problem not found'}</div>;
-  }
+    const sortedProblems = [...problems].sort((a, b) => {
+      if (key === "status") {
+        const statusA = status[a.id] || false;
+        const statusB = status[b.id] || false;
+        return direction === "asc" ? Number(statusA) - Number(statusB) : Number(statusB) - Number(statusA);
+      }
+      if (a[key as keyof typeof a] < b[key as keyof typeof b]) {
+        return direction === "asc" ? -1 : 1;
+      }
+      if (a[key as keyof typeof a] > b[key as keyof typeof b]) {
+        return direction === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
+    setProblems(sortedProblems);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Column: ProblemPanel and TestCases */}
-        <div className="flex flex-col gap-4">
-          <ProblemPanel
-            id={problemData.id}
-            title={problemData.title}
-            difficulty={problemData.difficulty}
-            statement={problemData.statement}
-            language={problemData.language}
-          />
-          <TestCases cases={testCases} isSubmitting={isSubmitting} error={testCaseError} />
-        </div>
-
-        {/* Right Column: CodeEditor */}
-        <div>
-          <CodeEditor
-            onSubmit={handleSubmit}
-            ai_generated_code={problemData.ai_generated_code}
-            isSubmitting={isSubmitting}
-            language={problemData.language}
-          />
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50 p-4 text-gray-950 flex flex-col items-center">
+        <h1 className="text-4xl font-bold mb-6">Problems</h1>
+        <div className="overflow-x-auto w-full max-w-5xl">
+          <table className="table-auto w-full">
+            <thead className="bg-gray-100 border-b-2 border-gray-400">
+              <tr>
+                <th className="px-4 py-2 text-left w-28">
+                  <button
+                    onClick={() => handleSort("status")}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <span>Status</span>
+                    <FaSort className="text-gray-600 opacity-50" />
+                  </button>
+                </th>
+                <th className="px-4 py-2 text-left">
+                  <button
+                    onClick={() => handleSort("id")}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <span>Problem</span>
+                    <FaSort className="text-gray-600 opacity-50" />
+                  </button>
+                </th>
+                <th className="px-4 py-2 text-left">
+                  <button
+                    onClick={() => handleSort("category")}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <span>Category</span>
+                    <FaSort className="text-gray-600 opacity-50" />
+                  </button>
+                </th>
+                <th className="px-4 py-2 text-left">
+                  <button
+                    onClick={() => handleSort("difficulty")}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <span>Difficulty</span>
+                    <FaSort className="text-gray-600 opacity-50" />
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {problems.map((problem) => (
+                <tr key={problem.id} className="hover:bg-gray-50 border-b border-gray-300">
+                  <td className="px-4 py-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={status[problem.id] || false}
+                      onChange={() => handleStatusChange(problem.id)}
+                      className="cursor-pointer w-4 h-4"
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Link
+                      href={`/problem/${problem.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {problem.id}. {problem.title}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2">{problem.category}</td>
+                  <td className="px-4 py-2">{problem.difficulty}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
+    </>
   );
 }
