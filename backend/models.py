@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, String, Text
+from sqlalchemy import Column, String, Text, PickleType
 
 db = SQLAlchemy()
 
@@ -9,6 +9,7 @@ class Problem(db.Model):
     id = Column(String, primary_key=True)
     title = Column(String(255), nullable=False)
     language = Column(String(255), nullable=False)
+    required_packages = Column(PickleType, nullable=True)
     difficulty = Column(String(255), nullable=False)
     category = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)

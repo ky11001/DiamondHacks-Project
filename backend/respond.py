@@ -7,6 +7,7 @@ FILENAME = 'ncb_java_en.jsonl' #choose either java or python problem set
 OUTPUT_FILENAME = 'data/responses/ai_responses.json' #temp file to hold responses
 
 # Initialize Gemini client
+# TODO: GET TS OUTTA HERE
 genai.configure(api_key="AIzaSyCfHTrNkgzxlF3Ua3O3rWFe-RG6Os9evJ8")
 
 # Read the JSONL data
