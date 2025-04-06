@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import CodeEditor from "@/app/components/CodeEditor";
 import ProblemPanel from "@/app/components/ProblemPanel";
 import TestCases from "@/app/components/TestCases";
+import { useParams, useRouter } from "next/navigation";
 
 type Difficulty = "Easy" | "Medium" | "Hard";
 
@@ -33,8 +34,9 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [testCaseError, setTestCaseError] = useState<string | undefined>(undefined);
+  const params = useParams();
 
-  const id = "1"; // Replace with dynamic param later
+  const id = params?.id as string;
 
   useEffect(() => {
     const fetchProblemData = async () => {
