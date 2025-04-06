@@ -1,7 +1,7 @@
 "use client";
 
-import { Editor } from '@monaco-editor/react';
-import { useState } from 'react';
+import { Editor } from "@monaco-editor/react";
+import { useState } from "react";
 
 interface CodeEditorProps {
   onSubmit: (code: string) => void;
@@ -38,19 +38,20 @@ export default function CodeEditor({
   };
 
   return (
-    <div className="bg-white h-screen flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="space-x-2">
-          <button
-            onClick={handleSubmit}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
-            disabled={isSubmitting}
-          >
-            Submit
-          </button>
-        </div>
+    <div className="bg-white h-screen flex flex-col rounded-lg shadow-md">
+      {/* Header with Submit Button */}
+      <div className="flex items-center justify-end p-4">
+        <button
+          onClick={handleSubmit}
+          className="px-6 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Submit"}
+        </button>
       </div>
-      <div className="flex-1 overflow-hidden">
+
+      {/* Code Editor with Border */}
+      <div className="flex-1 overflow-hidden p-4 border border-gray-300 rounded-lg">
         <Editor
           height="100%"
           language={language.toLowerCase()}
@@ -63,10 +64,10 @@ export default function CodeEditor({
             scrollBeyondLastLine: false,
             automaticLayout: true,
             tabSize: 4,
-            wordWrap: 'off',
-            lineNumbers: 'on',
-            renderWhitespace: 'selection',
-            readOnly: false
+            wordWrap: "off",
+            lineNumbers: "on",
+            renderWhitespace: "selection",
+            readOnly: false,
           }}
         />
       </div>
