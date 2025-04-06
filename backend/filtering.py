@@ -21,10 +21,12 @@ from java_sandbox import JavaSandboxRunner
 import google.generativeai as genai
 
 # File paths
-PYTHON_PROBLEMS_FILENAME = 'data/problems/ncb_python_en.jsonl'
-PYTHON_RESPONSES_FILENAME = 'data/responses/ncb_python_responses.jsonl'
-JAVA_PROBLEMS_FILENAME = 'data/problems/ncb_java_en.jsonl'
-JAVA_RESPONSES_FILENAME = 'data/responses/ncb_java_responses.jsonl'
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+PYTHON_PROBLEMS_FILENAME = os.path.join(basedir, 'data/problems/ncb_python_en.jsonl')
+PYTHON_RESPONSES_FILENAME = os.path.join(basedir, 'data/responses/ncb_python_responses.jsonl')
+JAVA_PROBLEMS_FILENAME = os.path.join(basedir, 'data/problems/ncb_java_en.jsonl')
+JAVA_RESPONSES_FILENAME = os.path.join(basedir, 'data/responses/ncb_java_responses.jsonl')
 
 # Google API key
 genai.configure(api_key="AIzaSyCfHTrNkgzxlF3Ua3O3rWFe-RG6Os9evJ8")  # Replace with your actual Gemini API key
@@ -99,8 +101,6 @@ def evaluate_solution(solution, tests, lang):
     return "results" in result and result.get("success")
 
 # Process each problem
-# TODO: include java functionality
-
 # ✅ Set up Flask app with identical DB config
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -145,7 +145,7 @@ with app.app_context():
             continue
 
         if not evaluate_solution(llm_code, test_code, "python"):
-            title, difficulty, summery = generate_title_difficulty_summary(description, llm_code)
+            title, difficulty, summary = generate_title_difficulty_summary(description, llm_code)
             p = Problem(
                 id=str(n_seeded),
                 title=title,
@@ -153,7 +153,7 @@ with app.app_context():
                 required_packages=deps,
                 difficulty=difficulty,
                 category=category,
-                description=summery,
+                description=summary,
                 llm_prompt=prompt,
                 llm_code=llm_code,
                 test_code=test_code,
@@ -165,7 +165,6 @@ with app.app_context():
             n_seeded += 1
 
     # ========== JAVA ==========
-    n_seeded = 38
     with open(JAVA_PROBLEMS_FILENAME, 'r', encoding='utf-8') as f:
         java_problems = [json.loads(line) for line in f]
     with open(JAVA_RESPONSES_FILENAME, 'r', encoding='utf-8') as f:
