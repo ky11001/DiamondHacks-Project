@@ -93,20 +93,19 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 text-gray-950">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-4">
+    <div className="min-h-screen bg-gray-50 text-gray-950 flex">
+      <div className="flex flex-col lg:flex-row w-full">
+        <div className="lg:w-1/2 lg:max-h-screen lg:overflow-auto">
           <ProblemPanel
             id={problemData.id}
             title={problemData.title}
             difficulty={problemData.difficulty}
             statement={problemData.statement}
             language={problemData.language}
+            testCases={<TestCases cases={testCases} isSubmitting={isSubmitting} error={testCaseError} />}
           />
-          <TestCases cases={testCases} isSubmitting={isSubmitting} error={testCaseError} />
         </div>
-
-        <div>
+        <div className="lg:w-1/2 h-screen">
           <CodeEditor
             onSubmit={handleSubmit}
             ai_generated_code={problemData.ai_generated_code}

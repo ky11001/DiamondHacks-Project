@@ -20,7 +20,7 @@ export default function Home() {
   useEffect(() => {
     const fetchProblems = async () => {
       try {
-        const res = await fetch("http://localhost:5000/list_problems");
+        const res = await fetch("http://127.0.0.1:5000/list_problems");
         const data = await res.json();
         setProblems(data);
       } catch (err) {
@@ -124,9 +124,8 @@ export default function Home() {
               {problems.map((problem, index) => (
                 <tr
                   key={problem.id}
-                  className={`${
-                    index % 2 === 0 ? "bg-gray-100" : "bg-gray-50"
-                  } hover:bg-gray-150 border-b border-gray-300`}
+                  className={`${index % 2 === 0 ? "bg-gray-100" : "bg-gray-50"
+                    } hover:bg-gray-150 border-b border-gray-300`}
                 >
                   <td className="px-4 py-2 text-center">
                     <input
