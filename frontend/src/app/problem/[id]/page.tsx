@@ -8,6 +8,7 @@ import CodeEditor from "@/app/components/CodeEditor";
 import ProblemPanel from "@/app/components/ProblemPanel";
 import TestCases from "@/app/components/TestCases";
 import { useParams } from "next/navigation";
+import ChatBot from "@/app/components/ChatBot";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -134,6 +135,7 @@ export default function Home() {
           </div>
         </div>
       </div>
+      <ChatBot />
     </div>
   );
 }
