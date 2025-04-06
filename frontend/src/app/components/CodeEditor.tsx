@@ -10,8 +10,18 @@ interface CodeEditorProps {
   language: string;
 }
 
-export default function CodeEditor({ onSubmit, ai_generated_code, isSubmitting, language }: CodeEditorProps) {
-  const [code, setCode] = useState("");
+export default function CodeEditor({
+  onSubmit,
+  ai_generated_code,
+  isSubmitting,
+  language,
+}: {
+  onSubmit: (code: string) => void;
+  ai_generated_code: string;
+  isSubmitting: boolean;
+  language: string;
+}) {
+  const [code, setCode] = useState(ai_generated_code);
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
@@ -24,8 +34,8 @@ export default function CodeEditor({ onSubmit, ai_generated_code, isSubmitting, 
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm h-full">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white h-screen flex flex-col">
+      <div className="flex items-center justify-between p-4 border-b">
         <div className="space-x-2">
           <button
             onClick={handleSubmit}
@@ -36,22 +46,20 @@ export default function CodeEditor({ onSubmit, ai_generated_code, isSubmitting, 
           </button>
         </div>
       </div>
-      <div className="h-[500px] border rounded-md overflow-hidden">
+      <div className="flex-1 overflow-hidden">
         <Editor
           height="100%"
-          language={language}
+          language={language.toLowerCase()}
           value={code}
           defaultValue={ai_generated_code}
           onChange={handleEditorChange}
           theme="vs-light"
-
           options={{
             minimap: { enabled: false },
-            fontSize: 14,
             scrollBeyondLastLine: false,
             automaticLayout: true,
             tabSize: 4,
-            wordWrap: 'on',
+            wordWrap: 'off',
             lineNumbers: 'on',
             renderWhitespace: 'selection',
             readOnly: false

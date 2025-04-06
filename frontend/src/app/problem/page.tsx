@@ -1,19 +1,35 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Header from "../components/Header";
-import Image from "next/image"; // Import Image for the logo
+import Image from "next/image";
 import { FaSort } from "react-icons/fa";
 
-export default function Home() {
-  const [problems, setProblems] = useState([
-    { id: "1", title: "Two Sum", category: "DSA", difficulty: "Easy" },
-    { id: "2", title: "Reverse Integer", category: "Math", difficulty: "Medium" },
-    { id: "3", title: "Palindrome Number", category: "DSA", difficulty: "Easy" },
-  ]);
+type Problem = {
+  id: string;
+  title: string;
+  category: string;
+  difficulty: string;
+};
 
+export default function Home() {
+  const [problems, setProblems] = useState<Problem[]>([]);
   const [status, setStatus] = useState<{ [key: string]: boolean }>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+
+  useEffect(() => {
+    const fetchProblems = async () => {
+      try {
+        const res = await fetch("/list_problems");
+        const data = await res.json();
+        setProblems(data);
+      } catch (err) {
+        console.error("Failed to fetch problems:", err);
+      }
+    };
+
+    fetchProblems();
+  }, []);
 
   const handleStatusChange = (id: string) => {
     setStatus((prevStatus) => ({
@@ -35,10 +51,10 @@ export default function Home() {
         const statusB = status[b.id] || false;
         return direction === "asc" ? Number(statusA) - Number(statusB) : Number(statusB) - Number(statusA);
       }
-      if (a[key as keyof typeof a] < b[key as keyof typeof b]) {
+      if (a[key as keyof Problem] < b[key as keyof Problem]) {
         return direction === "asc" ? -1 : 1;
       }
-      if (a[key as keyof typeof a] > b[key as keyof typeof b]) {
+      if (a[key as keyof Problem] > b[key as keyof Problem]) {
         return direction === "asc" ? 1 : -1;
       }
       return 0;
@@ -50,17 +66,16 @@ export default function Home() {
     <>
       <Header />
       <div className="relative min-h-screen p-4 text-gray-950 flex flex-col items-center overflow-hidden">
-        {/* Background Animation */}
         <div className="absolute inset-0 -z-10 liquid-gradient-animation"></div>
         {/* Content */}
         <div className="flex justify-center mb-10 animate-bob">
           <Image
-            src="/problemsLogo.png" // Path to the problems logo in the public folder
+            src="/problemsLogo.png"
             alt="Problems Logo"
-            className="w-auto max-w-[20rem]" // Ensure the logo doesn't get too large
-            width={480} // Default width
-            height={340} // Default height
-            priority // Preload the logo for faster loading
+            className="w-auto max-w-[20rem]"
+            width={480}
+            height={340}
+            priority
           />
         </div>
         <div className="bg-white rounded-lg shadow-lg w-full max-w-5xl overflow-hidden">
@@ -109,9 +124,8 @@ export default function Home() {
               {problems.map((problem, index) => (
                 <tr
                   key={problem.id}
-                  className={`${
-                    index % 2 === 0 ? "bg-gray-100" : "bg-gray-50"
-                  } hover:bg-gray-150 border-b border-gray-300`}
+                  className={`${index % 2 === 0 ? "bg-gray-100" : "bg-gray-50"
+                    } hover:bg-gray-150 border-b border-gray-300`}
                 >
                   <td className="px-4 py-2 text-center">
                     <input
@@ -129,8 +143,8 @@ export default function Home() {
                       {problem.id}. {problem.title}
                     </Link>
                   </td>
-                  <td className="px-4 py-2">{problem.category}</td>
-                  <td className="px-4 py-2">{problem.difficulty}</td>
+                  <td className="px-4 py-2">{problem.category || "N/A"}</td>
+                  <td className="px-4 py-2">{problem.difficulty || "N/A"}</td>
                 </tr>
               ))}
             </tbody>

@@ -3,30 +3,32 @@ import multiprocessing
 multiprocessing.set_start_method("fork", force=True)
 
 from models import db, Problem
-from flask_sqlalchemy import SQLAlchemy
 
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, abort
 from py_sandbox import PySandboxRunner, ensure_packages_installed
 from java_sandbox import JavaSandboxRunner
+from flask_cors import CORS
 
 app = Flask(__name__)
+
+CORS(app)
 
 # Initialize sandbox runners
 py_runner = PySandboxRunner()
 java_runner = JavaSandboxRunner()
 
 # Simple HTML form to test from browser
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///problems.db"
+import os
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    f"sqlite:///{os.path.join(basedir, 'problems.db')}"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+print("Using DB:", app.config["SQLALCHEMY_DATABASE_URI"])
 db.init_app(app)
 
-
-@app.before_request
-def create_tables():
-    db.create_all()
-
-
-# ✅ HTML UI for testing (loads problem 100 by default)
+# ✅ HTML UI for testing (loads problem 1 by default)
 form_template = """
 <!DOCTYPE html>
 <html>
@@ -119,50 +121,79 @@ form_template = """
 # ✅ Serve the HTML form at root
 @app.route("/", methods=["GET"])
 def home():
-    # Load default problem (131)
-    default_id = "131"
+    problems = Problem.query.all()
+    print([{"id": p.id, "title": p.title} for p in problems])
+    # Default load problem 1
+    default_id = "1"
     problem = Problem.query.get(default_id)
 
     solution_code = problem.llm_code if problem else "def example():\n  pass"
-    return render_template_string(form_template, default_id=default_id, default_code=solution_code)
+    return render_template_string(
+        form_template, default_id=default_id, default_code=solution_code
+    )
 
 
-@app.route("/get_problem/<id>", methods=["GET"])
+@app.route("/get_problem/<int:id>", methods=["GET"])
 def get_problem(id):
-    # TODO: fetch problem data from database
+    # Fetch problem from database
+    problem = Problem.query.get(id)
+    if not problem:
+        abort(404, description=f"Problem with ID {id} not found")
+
     return jsonify(
         {
-            "id": id,
-            "title": "First problem!",
-            "statement": "Statement for problem " + id,
-            "difficulty": "Easy",
-            "language": "python",
-            "ai_generated_code": "def add(a, b):\n    return a + b\n",
+            "id": problem.id,
+            "title": problem.title,
+            "language": problem.language,
+            "required_packages": problem.required_packages,
+            "statement": problem.description,
+            "difficulty": problem.difficulty,
+            "ai_generated_code": problem.llm_code,
         }
     )
 
-# ✅ Dynamic test runner route
+
+@app.route("/list_problems")
+def list_problems():
+    # List out all problems in the db
+    problems = Problem.query.all()
+    return jsonify(
+        [
+            {
+                "id": p.id,
+                "title": p.title,
+                "category": p.category,
+                "difficulty": p.difficulty,
+                # optionally include more fields if you need them
+                # "language": p.language,
+                # "required_packages": p.required_packages,
+            }
+            for p in problems
+        ]
+    )
+
+
+# Dynamic test runner route
 @app.route("/run/<id>", methods=["POST"])
 def run(id: str):
     data = request.get_json()
     solution_code = data.get("solution_code", "")
-    language = data.get("language", "python").lower()
+    language = data.get("language", "Python").lower()
 
-    # TODO move this to get_test_code
     problem = Problem.query.get(id)
     if not problem:
-        return jsonify({
-            "success": False,
-            "error": f"No problem found with ID '{id}'"
-        }), 404
+        return (
+            jsonify({"success": False, "error": f"No problem found with ID '{id}'"}),
+            404,
+        )
 
     # Get the appropriate test code based on problem ID and language
     test_code = problem.test_code
     if not test_code:
-      return (
-          jsonify({"error": f"No test code found for problem {id} in {language}"}),
-          404,
-      )
+        return (
+            jsonify({"error": f"No test code found for problem {id} in {language}"}),
+            404,
+        )
 
     # Auto-install required packages
     if problem.required_packages:
@@ -179,62 +210,16 @@ def run(id: str):
     # Run the code
     result = runner.run(solution_code, test_code)
 
+    # print(result["stderr"])
+
     if "results" in result:
         return jsonify(result), (200 if result.get("success") else 400)
 
     return jsonify({"error": result.get("error", "Unknown error")}), 400
 
 
-# def get_test_code(problem_id: str, language: str) -> str:
-#     """Get test code for a specific problem and language."""
-#     # TODO: fetch test code from database
-#     # This is a placeholder - in a real app, this would come from a database
-#     test_cases = {
-#         "1": {
-#             "python": """
-# import pytest
-
-# class TestTwoSum:
-#     def test_case1(self):
-#         nums = [2, 7, 11, 15]
-#         target = 9
-#         result = two_sum(nums, target)
-#         assert result == [0, 1] or result == [1, 0]
-
-#     def test_case2(self):
-#         nums = [3, 2, 4]
-#         target = 6
-#         result = two_sum(nums, target)
-#         assert result == [1, 2] or result == [2, 1]
-# """,
-#             "java": """
-# import org.junit.jupiter.api.Test;
-# import static org.junit.jupiter.api.Assertions.*;
-
-# public class SolutionTest {
-#     @Test
-#     public void testCase1() {
-#         Solution solution = new Solution();
-#         int[] nums = {2, 7, 11, 15};
-#         int target = 9;
-#         int[] result = solution.twoSum(nums, target);
-#         assertArrayEquals(new int[]{0, 1}, result);
-#     }
-
-#     @Test
-#     public void testCase2() {
-#         Solution solution = new Solution();
-#         int[] nums = {3, 2, 4};
-#         int target = 6;
-#         int[] result = solution.twoSum(nums, target);
-#         assertArrayEquals(new int[]{1, 2}, result);
-#     }
-# }
-# """,
-#         }
-#     }
-#     return test_cases.get(problem_id, {}).get(language)
-
-
+# Initialize
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)

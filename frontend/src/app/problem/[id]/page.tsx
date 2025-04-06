@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
 
 import CodeEditor from "@/app/components/CodeEditor";
 import ProblemPanel from "@/app/components/ProblemPanel";
 import TestCases from "@/app/components/TestCases";
+import { useParams } from "next/navigation";
 
-type Difficulty = "Easy" | "Medium" | "Hard";
+type Difficulty = "easy" | "medium" | "hard";
 
 interface ProblemData {
   id: string;
@@ -24,9 +27,8 @@ interface TestCase {
 }
 
 function isDifficulty(value: string): value is Difficulty {
-  return ["Easy", "Medium", "Hard"].includes(value);
+  return ["easy", "medium", "hard"].includes(value.toLowerCase());
 }
-
 export default function Home() {
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,28 +36,25 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [testCaseError, setTestCaseError] = useState<string | undefined>(undefined);
+  const params = useParams();
 
-  const id = "1"; // This could come from route params in a real app
+  const id = params?.id as string;
 
   useEffect(() => {
     const fetchProblemData = async () => {
       try {
         const response = await fetch(`/get_problem/${id}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch problem data");
-        }
+        if (!response.ok) throw new Error("Failed to fetch problem data");
         const data = await response.json();
-        if (!isDifficulty(data.difficulty)) {
-          throw new Error("Invalid difficulty level received from API");
-        }
-        setProblemData(data as ProblemData);
+        data.difficulty = data.difficulty.toLowerCase();
+        if (!isDifficulty(data.difficulty)) throw new Error('Invalid difficulty level from API');
+        setProblemData(data);
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : "An error occurred");
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchProblemData();
   }, [id]);
 
@@ -67,6 +66,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ solution_code: code, language: problemData?.language }),
       });
+
       const data = await response.json();
       if (!data.results || data.error) {
         setTestCaseError(data.error || "No test results received");
@@ -86,6 +86,7 @@ export default function Home() {
     } finally {
       setIsSubmitting(false);
     }
+  };
   };
 
   // Render loading state

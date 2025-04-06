@@ -10,6 +10,7 @@ import re
 
 
 import os
+from unittest import result
 import xml.etree.ElementTree as ET
 
 
@@ -99,12 +100,11 @@ def _run_junit_in_subprocess(
                 "-jar",
                 "junit-platform-console-standalone-1.9.2.jar",
                 "--details=flat",
+                "--scan-classpath",
                 "--class-path",
                 tmpdir,
                 "--reports-dir",
                 os.path.join(tmpdir, "reports"),
-                "--select-class",
-                "SolutionTest",
             ],
             capture_output=True,
             text=True,
@@ -116,8 +116,10 @@ def _run_junit_in_subprocess(
         results = []
         all_passed = java_result.returncode == 0
 
+        # print("results", java_result)
+
         results = parse_junit_report_dir(os.path.join(tmpdir, "reports"))
-        print("result 1", results)
+        # print("result 1", results)
         # # Parse test summary from the output
         # test_summary = {}
         # for line in java_result.stdout.split("\n"):
